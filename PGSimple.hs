@@ -71,7 +71,6 @@ import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Transaction
     (TransactionMode, beginMode, defaultTransactionMode)
 import Database.PostgreSQL.Simple.Types ( Query(..) )
-import Text.Blaze ( ToMarkup )
 
 import qualified Data.ByteString as BS
 import qualified Data.Set as S
@@ -83,7 +82,7 @@ newtype InetText =
     InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show, Typeable
-               , Monoid, ToField, ToJSON, FromJSON, ToMarkup )
+               , Monoid, ToField, ToJSON, FromJSON )
 
 instance FromField InetText where
     fromField fld Nothing = returnError ConversionFailed
