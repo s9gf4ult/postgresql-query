@@ -23,7 +23,6 @@ import Prelude
 
 import Control.Applicative ( (<$>) )
 import Control.Monad ( unless )
-import Data.Int ( Int64 )
 import Data.Maybe ( listToMaybe )
 import Data.Monoid ( Monoid(mconcat), (<>) )
 import Data.Proxy ( Proxy(..) )
@@ -44,10 +43,20 @@ import qualified Data.Set as S
 
 -- | enclose field/table identifier with double quotes. It does not check if
 -- query string is already quoted
+--
+-- @
+-- λ> dquo "name"
+-- "\\"name\\""
+-- @
 dquo :: Query -> Query
 dquo a = "\"" <> a <> "\""
 
 -- | Intercalate query string like 'BS.intercalate' does
+--
+-- @
+-- λ> qIntercalate "," ["one", "two", "three"]
+-- "one,two,three"
+-- @
 qIntercalate :: Query -> [Query] -> Query
 qIntercalate (Query q) qs =
     Query
@@ -61,9 +70,9 @@ qIntercalate (Query q) qs =
 --
 -- @
 -- λ> concFields Nothing ["fld", "fld2"]
--- "\"fld\", \"fld2\""
+-- "\\"fld\\", \\"fld2\\""
 -- λ> concFields (Just "table") ["fld", "fld2"]
--- "\"table\".\"fld\", \"table\".\"fld2\""
+-- "\\"table\\".\\"fld\\", \\"table\\".\\"fld2\\""
 -- @
 concFields :: (Maybe Query)   -- ^ prefix for each field (i.e. when you use join)
            -> [Query]         -- ^ to get field names from
@@ -75,15 +84,16 @@ concFields pref qs = qIntercalate ", "
     qPrepend p val = (dquo p) <> "." <> val
 
 -- | Auxiliary function. Generate select query
+--
 -- @
 -- λ> selectFields False Nothing ["field", "field2"] "table"
--- "SELECT \"field\", \"field2\" FROM table"
+-- "SELECT \\"field\\", \\"field2\\" FROM table"
 -- λ> selectFields True Nothing ["field", "field2"] "table"
--- "SELECT DISTINCT \"field\", \"field2\" FROM table"
+-- "SELECT DISTINCT \\"field\\", \\"field2\\" FROM table"
 -- λ> selectFields False (Just "table") ["field", "field2"] "table"
--- "SELECT \"table\".\"field\", \"table\".\"field2\" FROM table"
+-- "SELECT \\"table\\".\\"field\\", \\"table\\".\\"field2\\" FROM table"
 -- λ> selectFields True (Just "table") ["field", "field2"] "table"
--- "SELECT DISTINCT \"table\".\"field\", \"table\".\"field2\" FROM table"
+-- "SELECT DISTINCT \\"table\\".\\"field\\", \\"table\\".\\"field2\\" FROM table"
 -- @
 selectFields :: Bool             -- ^ distinct ?
              -> (Maybe Query)    -- ^ namespace for field names
@@ -109,11 +119,11 @@ selectFields distinct mpre flds tbl =
 --     fieldNames _ = ["fld1", "fld2"]
 --
 -- λ> selectEntity False Nothing id (Proxy :: Proxy Tbl)
--- "SELECT \"fld1\", \"fld2\" FROM tbl"
+-- "SELECT \\"fld1\\", \\"fld2\\" FROM tbl"
 -- λ> selectEntity False Nothing ("id":) (Proxy :: Proxy Tbl)
--- "SELECT \"id\", \"fld1\", \"fld2\" FROM tbl"
+-- "SELECT \\"id\\", \\"fld1\\", \\"fld2\\" FROM tbl"
 -- λ> selectEntity False (Just "t") ("id":) (Proxy :: Proxy Tbl)
--- "SELECT \"t\".\"id\", \"t\".\"fld1\", \"t\".\"fld2\" FROM tbl"
+-- "SELECT \\"t\\".\\"id\\", \\"t\\".\\"fld1\\", \\"t\\".\\"fld2\\" FROM tbl"
 -- @
 selectEntity :: (Entity a)
              => Bool                -- ^ distinct?
@@ -234,8 +244,8 @@ someGetEntityBy actor row =
                  fields
 
 
-someInsertManyEntities :: forall a m. (Monad m, Entity a, ToRow a)
-                       => (Query -> [a] -> m Int64) -- ^ query executor
+someInsertManyEntities :: forall a m x. (Monad m, Entity a, ToRow a)
+                       => (Query -> [a] -> m x) -- ^ query executor
                        -> [a]                     -- ^ entity
                        -> m ()
 someInsertManyEntities actor a = do
@@ -243,29 +253,26 @@ someInsertManyEntities actor a = do
     return ()
 
 
-someDeleteEntity :: forall a m. (Entity a, ToField (EntityId a), Functor m)
-                 => (Query -> Only (EntityId a) -> m Int64)
+someDeleteEntity :: forall a m x. (Entity a, ToField (EntityId a), Functor m)
+                 => (Query -> Only (EntityId a) -> m x)
                  -> EntityId a
-                 -> (Proxy a) --  FIXME: to remove proxy EntityId must be
-                                     --  data family, not type family
                  -> m ()
-someDeleteEntity actor eid a = fmap (const ())
-                               $ actor q
-                               $ Only eid
+someDeleteEntity actor eid = fmap (const ())
+                             $ actor q
+                             $ Only eid
   where
     q = mconcat
         [ "DELETE FROM "
-        , dquo $ tableName a
+        , dquo $ tableName (Proxy :: Proxy a)
         , " WHERE id = ? " ]
 
 
-someUpdateEntity :: forall a b m. (Monad m, ToMarkedRow b, Entity a, ToField (EntityId a), Typeable a, Typeable b)
-                 => (Query -> [Action] -> m Int64)
+someUpdateEntity :: forall a b m x. (Monad m, ToMarkedRow b, Entity a, ToField (EntityId a), Typeable a, Typeable b)
+                 => (Query -> [Action] -> m x)
                  -> (EntityId a)
-                 -> Proxy a
                  -> b
                  -> m ()
-someUpdateEntity actor eid a row =
+someUpdateEntity actor eid prm =
     unless (null rowlist) $ do
         _ <- actor q fields
         return ()
@@ -274,16 +281,17 @@ someUpdateEntity actor eid a row =
              ++ [toField eid]
     q = mconcat
         [ "UPDATE "
-        , dquo $ tableName a
+        , dquo $ tableName (Proxy :: Proxy a)
         , " SET "
         , qIntercalate ", "
           $ map (nameToQ . fst) rowlist
         , " WHERE id = ?" ]
 
-    rowlist = checkMR $ toMarkedRow row
+    rowlist = checkMR $ toMarkedRow prm
     checkMR r = if (S.isSubsetOf
                     (S.fromList $ map fst r)
-                    (S.fromList $ fieldNames a))
+                    (S.fromList $ fieldNames
+                     (Proxy :: Proxy a)))
                 then r
                 else error
                      $ "fields of " <> tbname

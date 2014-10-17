@@ -239,26 +239,23 @@ mInsertManyEntities a = someInsertManyEntities mExecuteMany a
 
 
 
--- | Delete entity. Requires 'Proxy' while 'EntityId' is type family, but should
--- be a data family
+-- | Delete entity.
 --
 -- @
 -- rmUser :: EntityId User -> Handler ()
 -- rmUser uid = do
 --     pgDeleteEntity uid
---         (Proxy :: Proxy User)
 -- @
 pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, ToField (EntityId a), Functor m)
                => EntityId a
-               -> Proxy a
                -> m ()
-pgDeleteEntity eid a = someDeleteEntity pgExecute eid a
+pgDeleteEntity eid = someDeleteEntity pgExecute eid
 
+-- | Same as 'pgDeleteEntity' but for 'PgMonad' instances
 mDeleteEntity :: forall a m. (Entity a, PgMonad m, ToField (EntityId a), Functor m)
               => EntityId a
-              -> Proxy a
               -> m ()
-mDeleteEntity eid a = someDeleteEntity mExecute eid a
+mDeleteEntity eid = someDeleteEntity mExecute eid
 
 
 -- | Update entity using 'ToMarkedRow' instanced value. Requires 'Proxy' while
@@ -279,18 +276,16 @@ mDeleteEntity eid a = someDeleteEntity mExecute eid a
 pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, HasPostgres m,
                            ToField (EntityId a), Functor m, Typeable a, Typeable b)
                => EntityId a
-               -> Proxy a
                -> b
                -> m ()
-pgUpdateEntity eid a row = someUpdateEntity pgExecute eid a row
+pgUpdateEntity eid prm = someUpdateEntity pgExecute eid prm
 
 mUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, PgMonad m,
                           ToField (EntityId a), Functor m, Typeable a, Typeable b)
               => EntityId a
-              -> Proxy a
               -> b
               -> m ()
-mUpdateEntity eid a row = someUpdateEntity mExecute eid a row
+mUpdateEntity eid prm = someUpdateEntity mExecute eid prm
 
 -- someSelectCount :: Proxy a -> Query -> prms -> m Integer
 
