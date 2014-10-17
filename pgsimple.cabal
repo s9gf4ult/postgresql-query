@@ -21,8 +21,7 @@ library
                  , PGSimple.Internal
                  , PGSimple.TH
                  , PGSimple.Types
-  -- other-modules:
-  -- other-extensions:
+
   default-extensions: TemplateHaskell
                     , CPP
                     , DeriveDataTypeable
@@ -38,6 +37,7 @@ library
                     , OverloadedStrings
                     , QuasiQuotes
                     , ScopedTypeVariables
+                    , StandaloneDeriving
                     , TupleSections
                     , TypeFamilies
                     , TypeOperators

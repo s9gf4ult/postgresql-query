@@ -200,6 +200,8 @@ class Entity a where
     -- with order of fields in 'ToRow' and 'FromRow' instances of this type.
     fieldNames :: Proxy a -> [Query]
 
+deriving instance Typeable EntityId
+
 type Ent a = (EntityId a, a)
 
 
