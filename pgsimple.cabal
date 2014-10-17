@@ -16,9 +16,10 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules: PGSimple.TH
+  exposed-modules: PGSimple
                  , PGSimple.Functions
                  , PGSimple.Internal
+                 , PGSimple.TH
                  , PGSimple.Types
   -- other-modules:
   -- other-extensions:
