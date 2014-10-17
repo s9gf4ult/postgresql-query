@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules: PGSimple
+                 , PGSimple.TH
   -- other-modules:
   -- other-extensions:
   extensions: TemplateHaskell
@@ -50,6 +51,7 @@ library
                , resource-pool
                , text
                , transformers
+               , template-haskell
 
 
   -- hs-source-dirs:
