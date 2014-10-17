@@ -1,4 +1,22 @@
-module PGSimple.Internal where
+module PGSimple.Internal
+       ( -- * Query generation helpers
+         dquo
+       , qIntercalate
+       , concFields
+       , selectFields
+       , selectEntity
+       , insertEntity
+         -- * Generalized functions for CRUDing entities
+       , someInsertEntity
+       , someSelectEntities
+       , someSelectJustEntities
+       , someGetEntity
+       , someGetEntityBy
+       , someInsertManyEntities
+       , someDeleteEntity
+       , someUpdateEntity
+       , someSelectCount
+       ) where
 
 
 import Prelude

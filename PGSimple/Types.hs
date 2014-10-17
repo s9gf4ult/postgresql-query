@@ -1,4 +1,19 @@
-module PGSimple.Types where
+module PGSimple.Types
+       ( -- * Usable fields
+         InetText(..)
+         -- * Connection pooling
+       , HasPostgres(..)
+       , withPostgres
+         -- * Query execution monad
+       , PgMonad(..)
+       , PgMonadT(..)
+       , runPgMonadT
+       , launchPG
+         -- * Entity model
+       , Entity(..)
+       , Ent
+       , ToMarkedRow(..)
+       ) where
 
 
 import Prelude

@@ -1,4 +1,35 @@
-module PGSimple.Functions where
+module PGSimple.Functions
+       ( -- * One-query functions for 'HasPostgres' instances
+         pgQuery
+       , pgQuery_
+       , pgReturning
+       , pgExecute
+       , pgExecute_
+       , pgExecuteMany
+         -- * Inserting entities
+       , pgInsertEntity
+       , mInsertEntity
+       , pgInsertManyEntities
+       , mInsertManyEntities
+         -- * Selecting entities
+       , pgSelectEntities
+       , mSelectEntities
+       , pgSelectJustEntities
+       , mSelectJustEntities
+       , pgGetEntity
+       , mGetEntity
+       , pgGetEntityBy
+       , mGetEntityBy
+         -- * Deleting entities
+       , pgDeleteEntity
+       , mDeleteEntity
+         -- * Updating entities
+       , pgUpdateEntity
+       , mUpdateEntity
+         -- * Counting entities
+       , pgSelectCount
+       , mSelectCount
+       ) where
 
 import Prelude
 
