@@ -3,38 +3,24 @@ module PGSimple.Internal where
 
 import Prelude
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Catch
-import Control.Monad.Cont.Class
-import Control.Monad.Error.Class
-import Control.Monad.IO.Class
-import Control.Monad.Reader
-import Control.Monad.State.Class
-import Control.Monad.Trans.Control
-import Control.Monad.Writer.Class
-import Data.Int
-import Data.Maybe
-import Data.Monoid
-import Data.Pool
-import Data.Proxy
-import Data.String
-import Data.Typeable
+import Control.Applicative ( (<$>) )
+import Control.Monad ( unless )
+import Data.Int ( Int64 )
+import Data.Maybe ( listToMaybe )
+import Data.Monoid ( Monoid(mconcat), (<>) )
+import Data.Proxy ( Proxy(..) )
+import Data.Typeable ( Typeable, typeRep )
 import Database.PostgreSQL.Simple as PG
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple.Internal
+    ( Query, Only(Only), type (:.)(..), ToRow, FromRow )
+import Database.PostgreSQL.Simple.FromField ( FromField )
 import Database.PostgreSQL.Simple.ToField
-import Database.PostgreSQL.Simple.ToRow
-import Database.PostgreSQL.Simple.Transaction
+    ( Action, ToField(..) )
 import Database.PostgreSQL.Simple.Types
-
+    ( Query(..) )
 import PGSimple.Types
 
 import qualified Data.ByteString as BS
 import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 
 
 

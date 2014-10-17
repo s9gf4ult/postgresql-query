@@ -3,36 +3,36 @@ module PGSimple.Types where
 
 import Prelude
 
-
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Base
+import Control.Applicative ( Alternative, Applicative )
+import Control.Monad ( MonadPlus )
+import Control.Monad.Base ( MonadBase(..) )
 import Control.Monad.Catch
-import Control.Monad.Cont.Class
-import Control.Monad.Error.Class
-import Control.Monad.IO.Class
+    ( MonadThrow, MonadMask(mask), MonadCatch, onException )
+import Control.Monad.Cont.Class ( MonadCont )
+import Control.Monad.Error.Class ( MonadError )
+import Control.Monad.IO.Class ( MonadIO(..) )
 import Control.Monad.Reader
-import Control.Monad.State.Class
-import Control.Monad.Trans.Control
-import Control.Monad.Writer.Class
-import Data.Int
-import Data.Maybe
-import Data.Monoid
-import Data.Pool
-import Data.Proxy
-import Data.String
-import Data.Typeable
-import Database.PostgreSQL.Simple as PG
+    ( MonadFix, MonadTrans, ReaderT(..), MonadReader(..) )
+import Control.Monad.State.Class ( MonadState )
+import Control.Monad.Trans.Control ( MonadBaseControl )
+import Control.Monad.Writer.Class ( MonadWriter )
+import Data.Int ( Int64 )
+import Data.Monoid ( Monoid )
+import Data.Pool ( Pool, withResource )
+import Data.Proxy ( Proxy )
+import Data.String ( IsString )
+import Data.Typeable ( Typeable )
+import Database.PostgreSQL.Simple
+    ( Query, ToRow, Connection, FromRow,
+      rollback, commit, begin, execute_,
+      returning, query_, query, executeMany, execute )
 import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple.Internal
+    ( ResultError(..), FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
-import Database.PostgreSQL.Simple.ToRow
+    ( Action, ToField )
 import Database.PostgreSQL.Simple.Transaction
-import Database.PostgreSQL.Simple.Types
+    ( TransactionMode, defaultTransactionMode, beginMode )
 
-import qualified Data.ByteString as BS
-import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
@@ -52,13 +52,13 @@ instance FromField InetText where
     fromField fld (Just bs) = do
         n <- typename fld
         case n of
-            "inet" -> handle
-            "cidr" -> handle
+            "inet" -> result
+            "cidr" -> result
             _ -> returnError
                  ConversionFailed fld
                  "could not convert to InetText"
       where
-        handle = return $ InetText
+        result = return $ InetText
                  $ T.decodeUtf8 bs
 
 

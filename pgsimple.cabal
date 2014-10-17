@@ -22,25 +22,25 @@ library
                  , PGSimple.Types
   -- other-modules:
   -- other-extensions:
-  extensions: TemplateHaskell
-            , CPP
-            , DeriveDataTypeable
-            , EmptyDataDecls
-            , FlexibleContexts
-            , FlexibleInstances
-            , GADTs
-            , GeneralizedNewtypeDeriving
-            , LambdaCase
-            , MultiParamTypeClasses
-            , NoImplicitPrelude
-            , NoMonomorphismRestriction
-            , OverloadedStrings
-            , QuasiQuotes
-            , ScopedTypeVariables
-            , TupleSections
-            , TypeFamilies
-            , TypeOperators
-            , ViewPatterns
+  default-extensions: TemplateHaskell
+                    , CPP
+                    , DeriveDataTypeable
+                    , EmptyDataDecls
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , GADTs
+                    , GeneralizedNewtypeDeriving
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , NoImplicitPrelude
+                    , NoMonomorphismRestriction
+                    , OverloadedStrings
+                    , QuasiQuotes
+                    , ScopedTypeVariables
+                    , TupleSections
+                    , TypeFamilies
+                    , TypeOperators
+                    , ViewPatterns
 
   build-depends: base >=4.7 && <4.8
                , aeson

@@ -2,34 +2,20 @@ module PGSimple.Functions where
 
 import Prelude
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Catch
-import Control.Monad.Cont.Class
-import Control.Monad.Error.Class
-import Control.Monad.IO.Class
-import Control.Monad.Reader
-import Control.Monad.State.Class
-import Control.Monad.Trans.Control
-import Control.Monad.Writer.Class
-import Data.Int
-import Data.Maybe
-import Data.Monoid
-import Data.Pool
-import Data.Proxy
-import Data.String
-import Data.Typeable
+import Data.Int ( Int64 )
+import Data.Proxy ( Proxy )
+import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple as PG
+    ( Query, ToRow, FromRow, execute_,
+      returning, query_, query, executeMany, execute )
 import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.FromRow
-import Database.PostgreSQL.Simple.Internal
+    ( FromField )
 import Database.PostgreSQL.Simple.ToField
-import Database.PostgreSQL.Simple.ToRow
-import Database.PostgreSQL.Simple.Transaction
-import Database.PostgreSQL.Simple.Types
+    ( ToField )
 
 import PGSimple.Internal
 import PGSimple.Types
+
 
 pgQuery :: (HasPostgres m, ToRow q, FromRow r)
         => Query -> q -> m [r]
