@@ -23,18 +23,24 @@ cArgs (RecC _ n) = return $ length n
 cArgs _ = error "Constructor must be simple"
 
 -- | Derive 'FromRow' instance. i.e. you have type like that
+--
+-- @
 -- data Entity = Entity
 --               { eField :: Text
 --               , eField2 :: Int
 --               , efield3 :: Bool }
+-- @
 --
 -- then 'deriveFromRow' will generate this instance:
 -- instance FromRow Entity where
 --
+-- @
+-- instance FromRow Entity where
 --     fromRow = Entity
---               <$> field
---               <*> field
---               <*> field
+--               \<$> field
+--               \<*> field
+--               \<*> field
+-- @
 --
 -- Datatype must have just one constructor with arbitrary count of fields
 deriveFromRow :: Name -> Q [Dec]
@@ -56,21 +62,24 @@ deriveFromRow t = do
     fapChain n fld fap = UInfixE (VarE fld) (VarE fap) (fapChain (n-1) fld fap)
 
 
--- derives 'ToRow' instance
--- for datatype like
+-- | derives 'ToRow' instance for datatype like
 --
+-- @
 -- data Entity = Entity
 --               { eField :: Text
 --               , eField2 :: Int
 --               , efield3 :: Bool }
+-- @
 --
 -- it will derive instance like that:
 --
+-- @
 -- instance ToRow Entity where
 --      toRow (Entity e1 e2 e3) =
 --          [ toField e1
 --          , toField e2
 --          , toField e3 ]
+-- @
 deriveToRow :: Name -> Q [Dec]
 deriveToRow t = do
     TyConI (DataD _ _ _ [con] _) <- reify t
