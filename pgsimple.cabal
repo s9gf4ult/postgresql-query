@@ -16,8 +16,10 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules: PGSimple
-                 , PGSimple.TH
+  exposed-modules: PGSimple.TH
+                 , PGSimple.Functions
+                 , PGSimple.Internal
+                 , PGSimple.Types
   -- other-modules:
   -- other-extensions:
   extensions: TemplateHaskell
@@ -49,10 +51,12 @@ library
                , mtl
                , postgresql-simple             >= 0.4 && < 0.5
                , resource-pool
+               , template-haskell
                , text
                , transformers
-               , template-haskell
+               , transformers-base
 
+  ghc-options: -Wall
 
   -- hs-source-dirs:
   default-language:    Haskell2010
