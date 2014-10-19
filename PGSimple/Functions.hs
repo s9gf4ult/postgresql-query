@@ -50,32 +50,32 @@ import PGSimple.Types
 
 pgQuery :: (HasPostgres m, ToRow q, FromRow r)
         => Query -> q -> m [r]
-pgQuery q ps = withPostgres
+pgQuery q ps = withPostgresIO
                $ \c -> query c q ps
 
 pgQuery_ :: (HasPostgres m, FromRow r)
          => Query -> m [r]
-pgQuery_ q = withPostgres
+pgQuery_ q = withPostgresIO
              $ \c -> query_ c q
 
 pgReturning :: (HasPostgres m, ToRow q, FromRow r)
             => Query -> [q] -> m [r]
-pgReturning q ps = withPostgres
+pgReturning q ps = withPostgresIO
                    $ \c -> returning c q ps
 
 pgExecute :: (HasPostgres m, ToRow q)
           => Query -> q -> m Int64
-pgExecute q ps = withPostgres
+pgExecute q ps = withPostgresIO
                  $ \c -> execute c q ps
 
 pgExecute_ :: (HasPostgres m)
            => Query -> m Int64
-pgExecute_ q = withPostgres
+pgExecute_ q = withPostgresIO
                $ \c -> execute_ c q
 
 pgExecuteMany :: (HasPostgres m, ToRow q)
               => Query -> [q] -> m Int64
-pgExecuteMany q ps = withPostgres
+pgExecuteMany q ps = withPostgresIO
                      $ \c -> executeMany c q ps
 
 

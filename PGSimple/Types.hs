@@ -4,6 +4,7 @@ module PGSimple.Types
          -- * Connection pooling
        , HasPostgres(..)
        , withPostgres
+       , withPostgresIO
          -- * Query execution monad
        , PgMonad(..)
        , PgMonadT(..)
@@ -80,10 +81,18 @@ instance FromField InetText where
 class (MonadBase IO m) => HasPostgres m where
     getPGpool :: m (Pool Connection)
 
-withPostgres :: (HasPostgres m, MonadBaseControl IO n, MonadBase n m)
-             => (Connection -> n a)
+withPostgres :: (HasPostgres m, MonadBaseControl IO m)
+             => (Connection -> m a)
              -> m a
 withPostgres action = do
+    pool <- getPGpool
+    withResource pool action
+
+
+withPostgresIO :: (HasPostgres m)
+               => (Connection -> IO a)
+               -> m a
+withPostgresIO action = do
     pool <- getPGpool
     liftBase
         $ withResource pool action
@@ -181,7 +190,7 @@ runPgMonadT con (PgMonadT action) = runReaderT action con
 --     a <- mQuery_ "SELECT val FROM tbl"
 --     return a
 -- @
-launchPG :: (HasPostgres m, MonadBaseControl IO m, MonadBase m m)
+launchPG :: (HasPostgres m, MonadBaseControl IO m)
          => PgMonadT m a
          -> m a
 launchPG act = withPostgres
