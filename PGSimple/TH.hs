@@ -5,11 +5,8 @@ module PGSimple.TH
 
 import Prelude
 
-import Control.Applicative ( (<$>), (<*>) )
+import Database.PostgreSQL.Simple.FromRow ( FromRow(..) )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
-import Database.PostgreSQL.Simple.ToField ( ToField(..) )
-import Database.PostgreSQL.Simple.FromField ( FromField(..) )
-import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Language.Haskell.TH
 
 cName :: (Monad m) => Con -> m Name
