@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 
 library
   exposed-modules: PGSimple
+                 , PGSimple.Config
                  , PGSimple.Functions
                  , PGSimple.Internal
                  , PGSimple.TH
@@ -36,6 +37,7 @@ library
                     , NoMonomorphismRestriction
                     , OverloadedStrings
                     , QuasiQuotes
+                    , RecordWildCards
                     , ScopedTypeVariables
                     , StandaloneDeriving
                     , TupleSections
@@ -45,6 +47,7 @@ library
 
   build-depends: base >=4.7 && <4.8
                , aeson
+               , time
                , bytestring
                , containers
                , exceptions
