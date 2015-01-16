@@ -1,7 +1,7 @@
 module PGSimple.Config
        (
          PostgresConf(..)
-       , establishPGPool
+       , createPGPool
        ) where
 
 import Prelude
@@ -49,8 +49,8 @@ instance FromJSON PostgresConf where
                  , pgPoolStripes = pStripes
                  }
 
-establishPGPool :: PostgresConf -> IO (Pool PG.Connection)
-establishPGPool PostgresConf{..} =
+createPGPool :: PostgresConf -> IO (Pool PG.Connection)
+createPGPool PostgresConf{..} =
     createPool
     (PG.connectPostgreSQL pgConnStr)
     PG.close
