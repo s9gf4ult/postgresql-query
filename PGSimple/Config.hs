@@ -1,7 +1,7 @@
 module PGSimple.Config
        (
          PostgresConf(..)
-       , createPGPool
+       , PGPool, createPGPool, pingPGPool
        ) where
 
 import Prelude
@@ -12,6 +12,8 @@ import Data.Pool
 import Data.Time
 
 import qualified Database.PostgreSQL.Simple as PG
+
+type PGPool = Pool PG.Connection
 
 data PostgresConf = PostgresConf
     { pgConnStr  :: ByteString
@@ -26,12 +28,12 @@ data PostgresConf = PostgresConf
 
 instance FromJSON PostgresConf where
     parseJSON = withObject "PostgresConf" $ \o -> do
-        database <- o .: "database"
-        host     <- o .: "host"
-        port     <- o .:? "port" .!= 5432
-        user     <- o .: "user"
-        password <- o .: "password"
-        pSize    <- o .: "poolsize"
+        database <- o .:  "database"
+        host     <- o .:? "host"        .!= "127.0.0.1"
+        port     <- o .:? "port"        .!= 5432
+        user     <- o .:  "user"
+        password <- o .:  "password"
+        pSize    <- o .:? "poolsize"    .!= 10
         pTimeout <- o .:? "pooltimeout" .!= 60
         pStripes <- o .:? "poolstripes" .!= 1
         let ci = PG.ConnectInfo
@@ -49,7 +51,7 @@ instance FromJSON PostgresConf where
                  , pgPoolStripes = pStripes
                  }
 
-createPGPool :: PostgresConf -> IO (Pool PG.Connection)
+createPGPool :: PostgresConf -> IO PGPool
 createPGPool PostgresConf{..} =
     createPool
     (PG.connectPostgreSQL pgConnStr)
@@ -57,3 +59,6 @@ createPGPool PostgresConf{..} =
     pgPoolStripes
     pgPoolTimeout
     pgPoolSize
+
+pingPGPool :: PGPool -> IO ()
+pingPGPool pool = withResource pool $ const (return ())
