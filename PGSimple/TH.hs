@@ -49,14 +49,20 @@ deriveFromRow t = do
            fromRow = $(fieldsQ cname cargs)|]
   where
     fieldsQ cname cargs = do
-        (Just fld) <- lookupValueName "field"
-        (Just fmp) <- lookupValueName "<$>"
-        (Just fap) <- lookupValueName "<*>"
+        fld <- lookupVNameErr "field"
+        fmp <- lookupVNameErr "<$>"
+        fap <- lookupVNameErr "<*>"
         return $ UInfixE (ConE cname) (VarE fmp) (fapChain cargs fld fap)
 
-    fapChain 0 _ _ = error "unexpected 0"
+    fapChain 0 _ _ = error "there must be at least 1 field in constructor"
     fapChain 1 fld _ = VarE fld
     fapChain n fld fap = UInfixE (VarE fld) (VarE fap) (fapChain (n-1) fld fap)
+
+lookupVNameErr :: String -> Q Name
+lookupVNameErr name =
+    lookupValueName name >>=
+    maybe (error $ "could not find identifier: " ++ name)
+          return
 
 
 -- | derives 'ToRow' instance for datatype like
@@ -89,7 +95,7 @@ deriveToRow t = do
            toRow $(return $ ConP cname $ map VarP cvars) = $(toFields cvars)|]
   where
     toFields v = do
-        (Just tof) <- lookupValueName "toField"
+        tof <- lookupVNameErr "toField"
         return $ ListE
             $ map
             (\e -> AppE (VarE tof) (VarE e))
