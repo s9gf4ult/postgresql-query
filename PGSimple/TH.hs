@@ -6,8 +6,9 @@ module PGSimple.TH
 
 import Prelude
 
+import Control.Applicative ( (<$>), (<*>) )
 import Data.FileEmbed ( embedFile )
-import Database.PostgreSQL.Simple.FromRow ( FromRow(..) )
+import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
@@ -53,14 +54,14 @@ deriveFromRow t = do
            fromRow = $(fieldsQ cname cargs)|]
   where
     fieldsQ cname cargs = do
-        fld <- lookupVNameErr "field"
-        fmp <- lookupVNameErr "<$>"
-        fap <- lookupVNameErr "<*>"
-        return $ UInfixE (ConE cname) (VarE fmp) (fapChain cargs fld fap)
+        fld <- [| field |]
+        fmp <- [| (<$>) |]
+        fap <- [| (<*>) |]
+        return $ UInfixE (ConE cname) fmp (fapChain cargs fld fap)
 
     fapChain 0 _ _ = error "there must be at least 1 field in constructor"
-    fapChain 1 fld _ = VarE fld
-    fapChain n fld fap = UInfixE (VarE fld) (VarE fap) (fapChain (n-1) fld fap)
+    fapChain 1 fld _ = fld
+    fapChain n fld fap = UInfixE fld fap (fapChain (n-1) fld fap)
 
 lookupVNameErr :: String -> Q Name
 lookupVNameErr name =
