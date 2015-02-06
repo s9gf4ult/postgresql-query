@@ -1,13 +1,17 @@
 module PGSimple.TH
        ( deriveFromRow
        , deriveToRow
+       , embedSql
        ) where
 
 import Prelude
 
+import Data.FileEmbed ( embedFile )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..) )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
+import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
+
 
 cName :: (Monad m) => Con -> m Name
 cName (NormalC n _) = return n
@@ -100,3 +104,7 @@ deriveToRow t = do
             $ map
             (\e -> AppE (VarE tof) (VarE e))
             v
+
+embedSql :: String -> Q Exp
+embedSql path = do
+    [e| (Query ( $(embedFile path) )) |]

@@ -47,16 +47,17 @@ library
 
   build-depends: base >=4.7 && <4.8
                , aeson
-               , time
                , bytestring
                , containers
                , exceptions
+               , file-embed
                , monad-control
                , mtl
                , postgresql-simple             >= 0.3 && < 0.5
                , resource-pool
                , template-haskell
                , text
+               , time
                , transformers
                , transformers-base
 
