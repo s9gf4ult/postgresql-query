@@ -2,7 +2,7 @@ module PGSimple.TH
        ( deriveFromRow
        , deriveToRow
        , embedSql
-       , templateSql
+       , sqlFile
        ) where
 
 import Prelude
@@ -111,6 +111,6 @@ embedSql :: String -> Q Exp
 embedSql path = do
     [e| (Query ( $(embedFile path) )) |]
 
-templateSql :: String -> Q Exp
-templateSql s = do
+sqlFile :: String -> Q Exp
+sqlFile s = do
     embedSql $ "sql/" ++ s ++ ".sql"
