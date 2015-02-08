@@ -19,6 +19,7 @@ library
   exposed-modules: PGSimple
                  , PGSimple.Config
                  , PGSimple.Functions
+                 , PGSimple.Helpers
                  , PGSimple.Internal
                  , PGSimple.TH
                  , PGSimple.Types
@@ -47,10 +48,13 @@ library
 
   build-depends: base >=4.7 && <4.8
                , aeson
+               , attoparsec
+               , blaze-builder
                , bytestring
                , containers
                , exceptions
                , file-embed
+               , haskell-src-meta
                , monad-control
                , mtl
                , postgresql-simple             >= 0.3 && < 0.5

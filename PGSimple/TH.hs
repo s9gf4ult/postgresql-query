@@ -3,16 +3,27 @@ module PGSimple.TH
        , deriveToRow
        , embedSql
        , sqlFile
+       , sqlExp
        ) where
 
 import Prelude
 
-import Control.Applicative ( (<$>), (<*>) )
-import Data.FileEmbed ( embedFile )
+import Control.Applicative
+import Data.Attoparsec.Combinator
+import Data.Attoparsec.Text
+import Data.FileEmbed ( embedFile, bsToExp )
+import Data.Monoid
+import Data.Text ( Text )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
+import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
+import Language.Haskell.TH.Quote
+import PGSimple.Helpers
+
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 
 cName :: (Monad m) => Con -> m Name
@@ -114,3 +125,82 @@ embedSql path = do
 sqlFile :: String -> Q Exp
 sqlFile s = do
     embedSql $ "sql/" ++ s ++ ".sql"
+
+sqlExp :: QuasiQuoter
+sqlExp = QuasiQuoter
+         { quoteExp  = sqlQExp
+         , quotePat  = error "sqlInt used in pattern"
+         , quoteType = error "sqlInt used in type"
+         , quoteDec  = error "sqlInt used in declaration"
+         }
+
+data Rope
+    = RLit Text                -- ^ Literal SQL string
+    | RInt Text               -- ^ String with haskell expression of type __(ToField a) => a__
+    | RPaste Text             -- ^ String with haskell expression of type __SqlBuilder__
+    deriving (Ord, Eq)
+
+parseRope :: String -> [Rope]
+parseRope s = either error id
+              $ parseOnly ropeParser
+              $ T.pack s
+
+squashRope :: [Rope] -> [Rope]
+squashRope ((RLit a):(RLit b):xs) = (RLit $ a <> b) : squashRope xs
+squashRope x = x
+
+ropeParser :: Parser [Rope]
+ropeParser = fmap squashRope
+             $ many1
+             $ ropeLit <|> ropeInt <|> ropePaste <|> singleSpecial
+  where
+    specials = "^#"
+
+    ropeLit = RLit <$> takeWhile1 (`notElem` specials)
+
+    ropeInt = do
+        _ <- string "#{"
+        ex <- takeWhile1 (/= '}')
+        _ <- char '}'
+        return $ RInt ex
+
+    ropePaste = do
+        _ <- string "^{"
+        ex <- takeWhile1 (/= '}')
+        _ <- char '}'
+        return $ RPaste ex
+
+    singleSpecial = (RLit . T.singleton) <$> satisfy (`elem` specials)
+
+
+
+buildBuilder :: Exp -> Rope -> Q Exp
+buildBuilder _ (RLit t) = do
+    bs <- bsToExp $ T.encodeUtf8 t
+    [e| sqlBuilderBS $(pure bs) |]
+buildBuilder q (RInt t) = do
+    let ex = either error id $ parseExp $ T.unpack t
+    [e| sqlBuilderFromField $(pure q) $(pure ex) |]
+buildBuilder _ (RPaste t) =
+    return
+    $ either error id
+    $ parseExp
+    $ T.unpack t
+
+-- | Build 'Query' expression from row
+buildQ :: [Rope] -> Q Exp
+buildQ r = do
+    bs <- bsToExp $ mconcat $ map fromRope r
+    [e| Query $(pure bs) |]
+  where
+    fromRope (RLit t) = T.encodeUtf8 t
+    fromRope (RInt _) = "?"
+    fromRope (RPaste _) = "(FIXME: interpolate pasting later)"
+
+-- | Build expression of type SqlBuilder from SQL query with interpolation
+sqlQExp :: String -> Q Exp
+sqlQExp s = do
+    let rope = parseRope s
+    q <- buildQ rope
+    exps <- mapM (buildBuilder q) rope
+    [e| ( mconcat $(pure $ ListE exps) ) |]
