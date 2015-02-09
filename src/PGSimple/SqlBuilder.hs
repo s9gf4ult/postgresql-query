@@ -3,7 +3,10 @@ module PGSimple.SqlBuilder where
 import Prelude
 
 import Blaze.ByteString.Builder ( Builder )
-import Blaze.ByteString.Builder.ByteString ( fromByteString )
+import Blaze.ByteString.Builder.ByteString
+    ( fromByteString, fromLazyByteString )
+import Blaze.ByteString.Builder.Char.Utf8
+    ( fromString, fromText, fromLazyText )
 import Control.Applicative
 import Control.Exception
 import Data.ByteString ( ByteString )
@@ -11,19 +14,37 @@ import Data.Monoid
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
 
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Data.Text.Lazy.Builder as TBL
+import qualified Data.Text.Lazy as TL
+
 
 newtype SqlBuilder =
     SqlBuilder
     { sqlBuild :: Connection -> IO Builder }
 
+class ToSqlBuilder a where
+    toSqlBuilder :: a -> SqlBuilder
+
+instance ToSqlBuilder SqlBuilder where
+    toSqlBuilder = id
+instance ToSqlBuilder Builder where
+    toSqlBuilder = sqlBuilderPure
+instance ToSqlBuilder ByteString where
+    toSqlBuilder = sqlBuilderPure . fromByteString
+instance ToSqlBuilder BL.ByteString where
+    toSqlBuilder = sqlBuilderPure . fromLazyByteString
+instance ToSqlBuilder String where
+    toSqlBuilder = sqlBuilderPure . fromString
+instance ToSqlBuilder T.Text where
+    toSqlBuilder = sqlBuilderPure . fromText
+instance ToSqlBuilder TL.Text where
+    toSqlBuilder = sqlBuilderPure . fromLazyText
+
+
 sqlBuilderPure :: Builder -> SqlBuilder
 sqlBuilderPure b = SqlBuilder $ const $ pure b
-
-sqlBuilderBS :: ByteString -> SqlBuilder
-sqlBuilderBS bs = sqlBuilderPure $ fromByteString bs
 
 sqlBuilderFromField :: (ToField a) => Query -> a -> SqlBuilder
 sqlBuilderFromField q a =

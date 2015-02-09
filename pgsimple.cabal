@@ -24,6 +24,7 @@ library
                  , PGSimple.Internal
                  , PGSimple.SqlBuilder
                  , PGSimple.TH
+                 , PGSimple.TH.SqlExp
                  , PGSimple.Types
 
   default-extensions: TemplateHaskell
