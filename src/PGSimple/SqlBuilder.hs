@@ -11,18 +11,20 @@ import Control.Applicative
 import Control.Exception
 import Data.ByteString ( ByteString )
 import Data.Monoid
+import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
+import GHC.Generics ( Generic )
 
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 
-
 newtype SqlBuilder =
     SqlBuilder
     { sqlBuild :: Connection -> IO Builder }
+    deriving (Typeable, Generic)
 
 class ToSqlBuilder a where
     toSqlBuilder :: a -> SqlBuilder
@@ -41,6 +43,10 @@ instance ToSqlBuilder T.Text where
     toSqlBuilder = sqlBuilderPure . fromText
 instance ToSqlBuilder TL.Text where
     toSqlBuilder = sqlBuilderPure . fromLazyText
+instance ToRow row => ToSqlBuilder (Query, row) where
+    toSqlBuilder (q, row) = SqlBuilder $ \c ->
+        fromByteString <$> formatQuery c q row
+
 
 
 sqlBuilderPure :: Builder -> SqlBuilder

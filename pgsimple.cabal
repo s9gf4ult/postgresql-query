@@ -30,6 +30,7 @@ library
   default-extensions: TemplateHaskell
                     , CPP
                     , DeriveDataTypeable
+                    , DeriveGeneric
                     , EmptyDataDecls
                     , FlexibleContexts
                     , FlexibleInstances
