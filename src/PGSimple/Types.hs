@@ -19,6 +19,7 @@ module PGSimple.Types
 
 import Prelude
 
+import Blaze.ByteString.Builder ( toByteString )
 import Control.Applicative ( Alternative, Applicative )
 import Control.Monad ( MonadPlus )
 import Control.Monad.Base ( MonadBase(..) )
@@ -39,15 +40,18 @@ import Data.Proxy ( Proxy )
 import Data.String ( IsString )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
-    ( Query, ToRow, Connection, FromRow,
-      rollback, commit, begin, execute_,
-      returning, query_, query, executeMany, execute )
+    ( ToRow, Connection, FromRow, rollback,
+      commit, begin, execute_, returning,
+      query_, query, executeMany, execute )
 import Database.PostgreSQL.Simple.FromField
     ( ResultError(..), FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
     ( Action, ToField )
 import Database.PostgreSQL.Simple.Transaction
     ( TransactionMode, defaultTransactionMode, beginMode )
+import Database.PostgreSQL.Simple.Types
+    ( Query(..) )
+import PGSimple.SqlBuilder
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -101,9 +105,11 @@ withPostgresIO action = do
 -- | Typeclass for monad which can execute postgres queries
 class (Monad m) => PgMonad m where
     mQuery               :: (ToRow q, FromRow r) => Query ->  q  -> m [r]
+    mQueryB              :: (FromRow r)          => SqlBuilder  -> m [r]
     mQuery_              :: (FromRow r)          => Query       -> m [r]
     mReturning           :: (ToRow q, FromRow r) => Query -> [q] -> m [r]
     mExecute             :: (ToRow q)            => Query ->  q  -> m Int64
+    mExecuteB            ::                        SqlBuilder  -> m Int64
     mExecute_            ::                        Query       -> m Int64
     mExecuteMany         :: (ToRow q)            => Query -> [q] -> m Int64
 
@@ -148,6 +154,11 @@ instance (MonadIO m, MonadCatch m, MonadMask m)
     mQuery q ps = do
         con <- ask
         liftIO $ query con q ps
+    mQueryB bld = do
+        con <- ask
+        liftIO $ do
+            b <- sqlBuild bld con
+            query_ con $ Query $ toByteString b
     mQuery_ q = do
         con <- ask
         liftIO $ query_ con q
@@ -157,6 +168,11 @@ instance (MonadIO m, MonadCatch m, MonadMask m)
     mExecute q ps = do
         con <- ask
         liftIO $ execute con q ps
+    mExecuteB bld = do
+        con <- ask
+        liftIO $ do
+            b <- sqlBuild bld con
+            execute_ con $ Query $ toByteString b
     mExecute_ q = do
         con <- ask
         liftIO $ execute_ con q
