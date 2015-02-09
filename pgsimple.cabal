@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                pgsimple
-version:             0.1.4
+version:             0.2.0
 synopsis:            Some kind of primitive ORM
 -- description:
 license:             BSD3
