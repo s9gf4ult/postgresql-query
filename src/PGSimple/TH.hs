@@ -4,6 +4,10 @@ module PGSimple.TH
        , embedSql
        , sqlFile
        , sqlExp
+         -- * Rope
+       , Rope(..)
+       , ropeParser
+       , squashRope
        ) where
 
 import Prelude
@@ -138,7 +142,7 @@ data Rope
     = RLit Text                -- ^ Literal SQL string
     | RInt Text               -- ^ String with haskell expression of type __(ToField a) => a__
     | RPaste Text             -- ^ String with haskell expression of type __SqlBuilder__
-    deriving (Ord, Eq)
+    deriving (Ord, Eq, Show)
 
 parseRope :: String -> [Rope]
 parseRope s = either error id
@@ -146,8 +150,9 @@ parseRope s = either error id
               $ T.pack s
 
 squashRope :: [Rope] -> [Rope]
-squashRope ((RLit a):(RLit b):xs) = (RLit $ a <> b) : squashRope xs
-squashRope x = x
+squashRope ((RLit a):(RLit b):xs) = squashRope ((RLit $ a <> b):xs)
+squashRope (x:xs) = x:(squashRope xs)
+squashRope [] = []
 
 ropeParser :: Parser [Rope]
 ropeParser = fmap squashRope
