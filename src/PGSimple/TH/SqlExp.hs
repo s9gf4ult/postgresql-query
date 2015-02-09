@@ -19,11 +19,9 @@ import Control.Applicative
 import Control.Monad ( when )
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Text
-import Data.FileEmbed ( embedFile, bsToExp )
+import Data.FileEmbed ( bsToExp )
 import Data.Monoid
 import Data.Text ( Text )
-import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
-import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH

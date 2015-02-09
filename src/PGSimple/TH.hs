@@ -11,26 +11,15 @@ module PGSimple.TH
        , sqlExpFile
        ) where
 
-import Prelude hiding (takeWhile)
+import Prelude
 
 import Control.Applicative
-import Control.Monad ( when )
-import Data.Attoparsec.Combinator
-import Data.Attoparsec.Text
-import Data.FileEmbed ( embedFile, bsToExp )
-import Data.Monoid
-import Data.Text ( Text )
+import Data.FileEmbed ( embedFile )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
-import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
-import Language.Haskell.TH.Quote
-import PGSimple.SqlBuilder
 import PGSimple.TH.SqlExp
-
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 
 
 cName :: (Monad m) => Con -> m Name

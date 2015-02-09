@@ -1,7 +1,7 @@
+{-# OPTIONS -fno-warn-orphans #-}
+
 module Main where
 
-
-import Control.Applicative
 import Data.Attoparsec.Text ( parseOnly )
 import Data.Monoid
 import Data.Text ( Text )
