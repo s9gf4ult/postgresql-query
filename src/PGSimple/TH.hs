@@ -24,7 +24,7 @@ import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
-import PGSimple.Helpers
+import PGSimple.SqlBuilder
 
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T

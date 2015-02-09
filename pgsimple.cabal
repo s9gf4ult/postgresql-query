@@ -21,8 +21,8 @@ library
   exposed-modules: PGSimple
                  , PGSimple.Config
                  , PGSimple.Functions
-                 , PGSimple.Helpers
                  , PGSimple.Internal
+                 , PGSimple.SqlBuilder
                  , PGSimple.TH
                  , PGSimple.Types
 

@@ -1,4 +1,4 @@
-module PGSimple.Helpers where
+module PGSimple.SqlBuilder where
 
 import Prelude
 
@@ -49,7 +49,7 @@ throwFormatError q msg = throw
 quoteOrThrow :: Query -> Either ByteString ByteString -> Builder
 quoteOrThrow q = either (throwFormatError q) (inQuotes . fromByteString)
 
--- | Shity copy paste from postgresql-simple
+-- | Shity copy-paste from postgresql-simple
 buildAction :: Connection -> Query -> Action -> IO Builder
 buildAction _ _ (Plain b)            = pure b
 buildAction c q (Escape s)           = quoteOrThrow q <$> escapeStringConn c s
