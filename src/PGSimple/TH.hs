@@ -10,9 +10,10 @@ module PGSimple.TH
        , squashRope
        ) where
 
-import Prelude
+import Prelude hiding (takeWhile)
 
 import Control.Applicative
+import Control.Monad ( when )
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Text
 import Data.FileEmbed ( embedFile, bsToExp )
@@ -165,32 +166,32 @@ ropeParser = fmap squashRope
 
     ropeInt = do
         _ <- string "#{"
-        ex <- takeWhile1 (/= '}')
+        ex <- takeWhile (/= '}')
         _ <- char '}'
         return $ RInt ex
 
     ropePaste = do
         _ <- string "^{"
-        ex <- takeWhile1 (/= '}')
+        ex <- takeWhile (/= '}')
         _ <- char '}'
         return $ RPaste ex
 
     singleSpecial = (RLit . T.singleton) <$> satisfy (`elem` specials)
-
-
 
 buildBuilder :: Exp -> Rope -> Q Exp
 buildBuilder _ (RLit t) = do
     bs <- bsToExp $ T.encodeUtf8 t
     [e| sqlBuilderBS $(pure bs) |]
 buildBuilder q (RInt t) = do
+    when (T.null $ T.strip t) $ fail "empty interpolation string found"
     let ex = either error id $ parseExp $ T.unpack t
     [e| sqlBuilderFromField $(pure q) $(pure ex) |]
-buildBuilder _ (RPaste t) =
+buildBuilder _ (RPaste t) = do
+    when (T.null $ T.strip t) $ fail "empty paste string found"
     return
-    $ either error id
-    $ parseExp
-    $ T.unpack t
+        $ either error id
+        $ parseExp
+        $ T.unpack t
 
 -- | Build 'Query' expression from row
 buildQ :: [Rope] -> Q Exp

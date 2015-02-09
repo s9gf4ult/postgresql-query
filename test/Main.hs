@@ -24,7 +24,7 @@ instance Arbitrary Rope where
                                                        , not $ T.isInfixOf "^{" x
                                                        , T.length x > 0])
         nobraceString = suchThat arbitrary (\x -> and [ not $ T.isInfixOf "}" x
-                                                     , T.length x > 0])
+                                                      ])
 
 
 flattenRope :: [Rope] -> Text
