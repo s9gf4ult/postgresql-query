@@ -37,6 +37,7 @@ import Data.Monoid ( Monoid )
 import Data.Pool ( Pool, withResource )
 import Data.Proxy ( Proxy )
 import Data.String ( IsString )
+import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
     ( ToRow, Connection, FromRow, rollback,
@@ -138,10 +139,10 @@ class Entity a where
     -- | Id type for this entity
     data EntityId a :: *
     -- | Table name of this entity
-    tableName :: Proxy a -> Query
+    tableName :: Proxy a -> Text
     -- | Field names without 'id' and 'created'. The order of field names must match
     -- with order of fields in 'ToRow' and 'FromRow' instances of this type.
-    fieldNames :: Proxy a -> [Query]
+    fieldNames :: Proxy a -> [Text]
 
 deriving instance Typeable EntityId
 

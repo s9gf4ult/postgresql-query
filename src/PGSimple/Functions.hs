@@ -82,16 +82,17 @@ pgExecute q = withPGConnection $ \c -> liftBase $ do
 
 pgExecuteMany :: (HasPostgres m, ToRow q)
               => Query -> [q] -> m Int64 --  FIXME: make many rows interpolatable
-pgExecuteMany q ps = withPGConnection
-                     $ \c -> liftBase $ executeMany c q ps
-
-
+pgExecuteMany q ps =
+    withPGConnection $ \c -> liftBase $ executeMany c q ps
 
 pgInsertEntity :: forall a m. (HasPostgres m, Entity a,
                          ToRow a, FromField (EntityId a))
                => a
                -> m (EntityId a)
-pgInsertEntity a = someInsertEntity pgQuery a
+pgInsertEntity a = do
+    pgQuery [sqlExp|^{insertEntity a} RETURNING id|] >>= \case
+        (ret:_) -> return ret
+        _       -> fail "Query did not return any response"
 
 
 -- | Select entities as pairs of (id, entity).

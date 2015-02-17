@@ -7,7 +7,6 @@ module PGSimple.Internal
        , selectEntity
        , insertEntity
          -- * Generalized functions for CRUDing entities
-       , someInsertEntity
        , someSelectEntities
        , someSelectJustEntities
        , someGetEntity
@@ -26,19 +25,35 @@ import Control.Monad ( unless )
 import Data.Maybe ( listToMaybe )
 import Data.Monoid ( Monoid(mconcat), (<>) )
 import Data.Proxy ( Proxy(..) )
+import Data.Text ( Text )
 import Data.Typeable ( Typeable, typeRep )
 import Database.PostgreSQL.Simple as PG
-    ( Query, Only(Only), type (:.)(..), ToRow, FromRow )
+    ( Query, Only(Only), type (:.)(..) )
+import Database.PostgreSQL.Simple.ToRow
+    ( ToRow(..) )
+import Database.PostgreSQL.Simple.FromRow
+    ( FromRow(..) )
 import Database.PostgreSQL.Simple.FromField ( FromField )
 import Database.PostgreSQL.Simple.ToField
     ( Action, ToField(..) )
 import Database.PostgreSQL.Simple.Types
-    ( Query(..) )
+    ( Query(..), Identifier(..) )
+import PGSimple.SqlBuilder
+import PGSimple.TH
 import PGSimple.Types
 
 import qualified Data.ByteString as BS
 import qualified Data.Set as S
+import qualified Data.List as L
 
+
+-- | Shorthand function to convert identifier name to builder
+mkIdent :: Text -> SqlBuilder
+mkIdent t = mkValue $ Identifier t
+
+-- | Shorthand function to convert single value to builder
+mkValue :: (ToField a) => a -> SqlBuilder
+mkValue a = [sqlExp|#{a}|]
 
 
 -- | enclose field/table identifier with double quotes. It does not check if
@@ -138,35 +153,19 @@ selectEntity distinct mpre qfun a =
     $ tableName a
 
 -- | Same as 'selectEntity' but generates INSERT query
-insertEntity :: (Entity a) => Proxy a -> Query
+insertEntity :: forall a. (Entity a) => a -> SqlBuilder
 insertEntity a =
-    mconcat
-    [ "INSERT INTO "
-    , dquo $ tableName a
-    , "("
-    , concFields Nothing $ fieldNames a
-    , ") values ("
-    , qIntercalate ", "
-      $ map (const "?")
-      $ fieldNames a
-    , ")" ]
-
-
--- | Auxiliary function to abstract off the query generation. Used to create
--- functions 'pgInsertEntity' and 'mInsertEntity'. First argument is a query
--- executor, usually 'pgQuery' or 'mQuery'
-someInsertEntity :: forall a m. (Monad m, Entity a, ToRow a, FromField (EntityId a))
-                 => (Query -> a -> m ([Only (EntityId a)])) -- query executor
-                 -> a                                     -- entity
-                 -> m (EntityId a)
-someInsertEntity actor a = do
-    [Only ret] <- actor insertEnt a
-    return ret
-  where
-    insertEnt =
-        mconcat
-        [ insertEntity (Proxy :: Proxy a)
-        , " RETURNING id" ]
+    let p = Proxy :: Proxy a
+        names = mconcat
+                $ L.intersperse ", "
+                $ map mkIdent
+                $ fieldNames p
+        values = mconcat
+                 $ L.intersperse ", "
+                 $ map mkValue
+                 $ toRow a
+    in [sqlExp| INSERT INTO #{Identifier $ tableName p}
+                (^{names}) VALUES (^{values}) |]
 
 
 someSelectEntities :: forall m a q. (Functor m, Entity a, FromRow a, ToRow q, FromField (EntityId a))
