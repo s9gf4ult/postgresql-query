@@ -2,7 +2,8 @@ module PGSimple.SqlBuilder where
 
 import Prelude
 
-import Blaze.ByteString.Builder ( Builder )
+import Blaze.ByteString.Builder
+    ( Builder, toByteString )
 import Control.Applicative
 import Control.Exception
 import Data.ByteString ( ByteString )
@@ -11,6 +12,7 @@ import Data.String
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
+import Database.PostgreSQL.Simple.Types ( Query(..) )
 import GHC.Generics ( Generic )
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
@@ -20,18 +22,29 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 
+class ToSqlBuilder a where
+    toSqlBuilder :: a -> SqlBuilder
+
+-- | Special constructor to perform old-style query interpolation
+data Qp = forall row. (ToRow row) => Qp Query row
+
+instance ToSqlBuilder Qp where
+    toSqlBuilder (Qp q row) = SqlBuilder $ \c ->
+        BB.fromByteString <$> formatQuery c q row
+
 newtype SqlBuilder =
     SqlBuilder
     { sqlBuild :: Connection -> IO Builder }
     deriving (Typeable, Generic)
 
+runSqlBuilder :: Connection -> SqlBuilder -> IO Query
+runSqlBuilder con (SqlBuilder bld) =
+    (Query . toByteString) <$> bld con
+
 instance IsString SqlBuilder where
     fromString s =
         let b = fromString s :: ByteString
         in toSqlBuilder b
-
-class ToSqlBuilder a where
-    toSqlBuilder :: a -> SqlBuilder
 
 instance ToSqlBuilder SqlBuilder where
     toSqlBuilder = id
@@ -47,10 +60,6 @@ instance ToSqlBuilder T.Text where
     toSqlBuilder = sqlBuilderPure . BB.fromText
 instance ToSqlBuilder TL.Text where
     toSqlBuilder = sqlBuilderPure . BB.fromLazyText
-instance ToRow row => ToSqlBuilder (Query, row) where
-    toSqlBuilder (q, row) = SqlBuilder $ \c ->
-        BB.fromByteString <$> formatQuery c q row
-
 
 
 sqlBuilderPure :: Builder -> SqlBuilder
@@ -64,7 +73,6 @@ instance Monoid SqlBuilder where
     mempty = sqlBuilderPure mempty
     mappend (SqlBuilder a) (SqlBuilder b) =
         SqlBuilder $ \c -> mappend <$> (a c) <*> (b c)
-
 
 throwFormatError :: Query -> ByteString -> a
 throwFormatError q msg = throw
