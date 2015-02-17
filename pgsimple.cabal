@@ -48,6 +48,7 @@ library
                     , TupleSections
                     , TypeFamilies
                     , TypeOperators
+                    , UndecidableInstances
                     , ViewPatterns
 
   build-depends: base >=4.6 && < 5
