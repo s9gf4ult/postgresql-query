@@ -179,18 +179,23 @@ pgGetEntity eid = do
 -- @
 -- pgQuery "SELECT id, name, phone ... FROM users WHERE name = ? AND active = ?" (name, True)
 -- @
-pgGetEntityBy :: forall m a b. (Entity a, HasPostgres m, ToMarkedRow b,
-                          FromField (EntityId a), FromRow a, Functor m)
+pgGetEntityBy :: forall m a b. ( Entity a, HasPostgres m, ToMarkedRow b
+                         , FromField (EntityId a), FromRow a, Functor m )
               => b               -- ^ uniq constrained list of fields and values
               -> m (Maybe (Ent a))
-pgGetEntityBy f = (error "FIXME: ") -- someGetEntityBy pgQuery f
+pgGetEntityBy b =
+    let mr = toMarkedRow b
+        q = if L.null $ unMR mr
+            then mempty
+            else [sqlExp|WHERE ^{mrToBuilder "AND" mr} LIMIT 1|]
+    in listToMaybe <$> pgSelectEntities id q
 
 
 -- | Same as 'pgInsertEntity' but insert many entities at on action
 pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, ToRow a)
                      => [a]
                      -> m ()
-pgInsertManyEntities a = (error "FIXME: ") --  someInsertManyEntities pgExecuteMany a
+pgInsertManyEntities a = (error "FIXME: pgInsertManyEntities ") --  someInsertManyEntities pgExecuteMany a
 
 
 -- | Delete entity.
@@ -203,7 +208,10 @@ pgInsertManyEntities a = (error "FIXME: ") --  someInsertManyEntities pgExecuteM
 pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, ToField (EntityId a), Functor m)
                => EntityId a
                -> m ()
-pgDeleteEntity eid = (error "FIXME: ") -- someDeleteEntity pgExecute eid
+pgDeleteEntity eid =
+    let p = Proxy :: Proxy a
+    in (const ()) <$> pgExecute [sqlExp|DELETE FROM ^{mkIdent $ tableName p}
+                                        WHERE id = #{eid}|]
 
 
 -- | Update entity using 'ToMarkedRow' instanced value. Requires 'Proxy' while
@@ -226,9 +234,15 @@ pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, HasPostgres m,
                => EntityId a
                -> b
                -> m ()
-pgUpdateEntity eid prm = (error "FIXME: ") -- someUpdateEntity pgExecute eid prm
-
--- someSelectCount :: Proxy a -> Query -> prms -> m Integer
+pgUpdateEntity eid b =
+    let p = Proxy :: Proxy a
+        mr = toMarkedRow b
+    in if L.null $ unMR mr
+       then return ()
+       else fmap (const ())
+            $ pgExecute [sqlExp|UPDATE ^{mkIdent $ tableName p}
+                                SET ^{mrToBuilder ", " mr}
+                                WHERE id = #{eid}|]
 
 -- | Select count of entities with given query
 --
@@ -238,9 +252,10 @@ pgUpdateEntity eid prm = (error "FIXME: ") -- someUpdateEntity pgExecute eid prm
 --     pgSelectCount (Proxy :: Proxy User)
 --         "WHERE active = ?" [True]
 -- @
-pgSelectCount :: forall m a prm. (Entity a, HasPostgres m, ToRow prm, Functor m)
+pgSelectCount :: forall m a q. ( Entity a, HasPostgres m, ToSqlBuilder q )
               => Proxy a
-              -> Query
-              -> prm
+              -> q
               -> m Integer
-pgSelectCount q prm = (error "FIXME: ") -- someSelectCount pgQuery q prm
+pgSelectCount p q = do
+    [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{mkIdent $ tableName p} ^{q}|]
+    return c
