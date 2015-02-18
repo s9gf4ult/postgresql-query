@@ -26,6 +26,7 @@ import Blaze.ByteString.Builder ( toByteString )
 import Control.Applicative
 import Control.Monad.Base
 import Data.Int ( Int64 )
+import Data.Maybe ( listToMaybe )
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
@@ -110,8 +111,8 @@ pgInsertEntity a = do
 --         [10]
 --    -- Here the query will be: SELECT ... FROM tbl AS t INNER JOIN ...
 -- @
-pgSelectEntities :: forall m a q. (Functor m, HasPostgres m, Entity a,
-                             FromRow a, ToSqlBuilder q, FromField (EntityId a))
+pgSelectEntities :: forall m a q. ( Functor m, HasPostgres m, Entity a
+                            , FromRow a, ToSqlBuilder q, FromField (EntityId a) )
                  => ([Text] -> [Text])
                  -> q            -- ^ part of query just after __SELECT .. FROM table__
                  -> m [Ent a]
@@ -124,7 +125,8 @@ pgSelectEntities fpref q = do
 
 
 -- | Same as 'pgSelectEntities' but do not select id
-pgSelectJustEntities :: forall m a q. (Functor m, HasPostgres m, Entity a, FromRow a, ToSqlBuilder q)
+pgSelectJustEntities :: forall m a q. ( Functor m, HasPostgres m, Entity a
+                                 , FromRow a, ToSqlBuilder q )
                      => ([Text] -> [Text])
                      -> q
                      -> m [a]
@@ -145,7 +147,8 @@ pgGetEntity :: forall m a. (ToField (EntityId a), Entity a,
                       HasPostgres m, FromRow a, Functor m)
             => EntityId a
             -> m (Maybe a)
-pgGetEntity eid = (error "FIXME: ") -- someGetEntity pgQuery eid
+pgGetEntity eid = do
+    listToMaybe <$> pgSelectJustEntities id [sqlExp|WHERE id = #{eid} LIMIT 1|]
 
 
 -- | Get entity by some fields constraint
