@@ -1,6 +1,10 @@
 module PGSimple.Internal
-       ( -- * Query generation helpers
-         mkIdent
+       (
+         FN(..)
+       , MR(..)
+       , ToMarkedRow(..)
+       , mrToBuilder
+       , mkIdent
        , mkValue
        , buildFields
        , entityFields
@@ -15,21 +19,22 @@ import Prelude
 import Control.Applicative ( (<$>) )
 import Control.Monad ( unless )
 import Data.Maybe ( listToMaybe )
-import Data.Monoid ( Monoid(mconcat), (<>) )
+import Data.Monoid ( Monoid(..), (<>) )
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
 import Data.Typeable ( Typeable, typeRep )
 import Database.PostgreSQL.Simple as PG
     ( Query, Only(Only), type (:.)(..) )
-import Database.PostgreSQL.Simple.ToRow
-    ( ToRow(..) )
+import Database.PostgreSQL.Simple.FromField ( FromField )
 import Database.PostgreSQL.Simple.FromRow
     ( FromRow(..) )
-import Database.PostgreSQL.Simple.FromField ( FromField )
 import Database.PostgreSQL.Simple.ToField
     ( Action, ToField(..) )
+import Database.PostgreSQL.Simple.ToRow
+    ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types
     ( Query(..), Identifier(..) )
+import GHC.Generics ( Generic )
 import PGSimple.SqlBuilder
 import PGSimple.TH
 import PGSimple.Types
@@ -37,6 +42,7 @@ import PGSimple.Types
 import qualified Data.ByteString as BS
 import qualified Data.Set as S
 import qualified Data.List as L
+
 
 
 -- | Shorthand function to convert identifier name to builder
@@ -47,6 +53,44 @@ mkIdent t = mkValue $ Identifier t
 mkValue :: (ToField a) => a -> SqlBuilder
 mkValue a = [sqlExp|#{a}|]
 
+-- | Data representing dot-separated field name
+newtype FN =
+    FN [Text]
+    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+
+instance ToSqlBuilder FN where
+    toSqlBuilder (FN tt) =
+        mconcat
+        $ L.intersperse "."
+        $ map mkIdent tt
+
+newtype MR =
+    MR
+    { unMR :: [(Text, Action)]
+    } deriving (Show, Monoid, Typeable, Generic)
+
+class ToMarkedRow a where
+    -- | generate list of pairs (field name, field value)
+    toMarkedRow :: a -> MR
+
+instance ToMarkedRow MR where
+    toMarkedRow = id
+
+-- | Turns marked row to query condition or SET clause ih UPDATE query
+-- e.g.
+--
+-- @
+-- > mrToBuilder " AND " $ MR [(FN ["field"], toField 10), (FN ["field2"], toField 20)]
+-- " \"field\" = 10  AND  \"field2\" = 20 "
+-- @
+mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
+            -> MR
+            -> SqlBuilder
+mrToBuilder b (MR l) = mconcat
+                       $ L.intersperse b
+                       $ map tobld l
+  where
+    tobld (f, val) = [sqlExp| ^{mkIdent f} = #{val} |]
 
 -- | Fields of entity separated with coma. Each nested list is a dot-separated
 -- identifiers, so __[["t", "field"], ["t2", "field"]] -> "t"."field", "t2"."field"__

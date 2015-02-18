@@ -10,7 +10,6 @@ module PGSimple.Types
          -- * Entity model
        , Entity(..)
        , Ent
-       , ToMarkedRow(..)
        ) where
 
 
@@ -147,40 +146,3 @@ class Entity a where
 deriving instance Typeable EntityId
 
 type Ent a = (EntityId a, a)
-
-
--- | Auxiliary typeclass used inside such functions like
--- 'pgUpdateEntity'. Instance of this typeclass must be convertable to arbitrary
--- list of pairs (field name, field value).
---
--- @
--- data UpdateAppForm =
---     UpdateAppForm
---     { uafActive    :: !(Maybe Bool)
---     , uafPublished :: !(Maybe Bool)
---     } deriving (Eq, Ord, Typeable)
---
--- instance ToMarkedRow UpdateAppForm where
---     toMarkedRow f =
---         catMaybes
---         [ ((const "active") &&& toField) <$> uafActive f
---         , ((const "published") &&& toField) <$> uafPublished f
---         ]
--- @
---
--- So, no we can update our app like that:
---
--- @
--- pgUpdateEntity aid
---     (Proxy :: Proxy ClientApp)
---     (UpdateAppForm Nothing (Just True))
--- @
---
--- This is especially usable, when 'UpdateAppForm' is constructed from HTTP
--- query.
-class ToMarkedRow a where
-    -- | generate list of pairs (field name, field value)
-    toMarkedRow :: a -> [(Query, Action)]
-
-instance ToMarkedRow [(Query, Action)] where
-    toMarkedRow = id
