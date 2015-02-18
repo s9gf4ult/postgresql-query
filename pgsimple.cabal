@@ -57,6 +57,7 @@ library
                , blaze-builder
                , bytestring
                , containers
+               , either
                , exceptions
                , file-embed
                , haskell-src-meta

@@ -3,6 +3,7 @@ module PGSimple
          module PGSimple.Types
        , module PGSimple.Functions
        , module PGSimple.TH
+       , module PGSimple.SqlBuilder
            -- * Some re-exports from postgresql-simple
        , Connection, connect, defaultConnectInfo, connectPostgreSQL
        , ToField(..), ToRow(..), FromField(..), FromRow(..)
@@ -29,6 +30,7 @@ import Language.Haskell.TH.Quote ( QuasiQuoter )
 import PGSimple.Types
 import PGSimple.Functions
 import PGSimple.TH
+import PGSimple.SqlBuilder
 
 sqlQQ :: QuasiQuoter
 sqlQQ = sql

@@ -29,7 +29,10 @@ import Control.Monad.Reader
       MonadReader(..), withReaderT )
 import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
-import Control.Monad.Trans.Control ( MonadBaseControl )
+import Control.Monad.Trans.Control
+    ( MonadBaseControl, MonadTransControl )
+import Control.Monad.Trans.Either
+import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
 import Data.Int ( Int64 )
 import Data.Monoid ( Monoid )
@@ -84,6 +87,21 @@ instance FromField InetText where
 class (MonadBase IO m) => HasPostgres m where
     withPGConnection :: (Connection -> m a) -> m a
 
+instance (HasPostgres m) => HasPostgres (ReaderT r m) where
+    withPGConnection action = do
+        r <- ask
+        lift $ withPGConnection $ \con ->
+            runReaderT (action con) r
+
+instance (HasPostgres m) => HasPostgres (EitherT e m) where
+    withPGConnection action = do
+        EitherT $ withPGConnection $ \con -> do
+            runEitherT $ action con
+
+instance (HasPostgres m) => HasPostgres (MaybeT m) where
+    withPGConnection action = do
+        MaybeT $ withPGConnection $ \con -> do
+            runMaybeT $ action con
 
 newtype PgMonadT m a =
     PgMonadT
@@ -93,6 +111,13 @@ newtype PgMonadT m a =
                , Alternative, MonadFix, MonadPlus, MonadIO
                , MonadCont , MonadThrow, MonadCatch, MonadMask
                , MonadBase b )
+
+instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m)
+         --  FIXME: implement
+
+instance MonadTransControl PgMonadT
+         --  FIXME: implement
+
 
 instance (MonadReader r m) => MonadReader r (PgMonadT m) where
     ask = lift ask

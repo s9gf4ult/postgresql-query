@@ -37,6 +37,10 @@ newtype SqlBuilder =
     { sqlBuild :: Connection -> IO Builder }
     deriving (Typeable, Generic)
 
+-- | short hand function for typecheck
+emptyB :: SqlBuilder
+emptyB = mempty
+
 runSqlBuilder :: Connection -> SqlBuilder -> IO Query
 runSqlBuilder con (SqlBuilder bld) =
     (Query . toByteString) <$> bld con

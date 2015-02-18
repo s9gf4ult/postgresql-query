@@ -10,6 +10,7 @@ module PGSimple.Internal
        , entityFields
        , entityFieldsSimple
        , selectEntity
+       , insertInto
        , insertEntity
        ) where
 
@@ -150,6 +151,23 @@ selectEntity :: (Entity a)
 selectEntity bld p =
     [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
 
+
+insertInto :: (ToMarkedRow b)
+           => Text               -- ^ table name
+           -> b                  -- ^ list of pairs (name, value)
+           -> SqlBuilder
+insertInto tname b =
+    let mr = toMarkedRow b
+        names = mconcat
+                $ L.intersperse ", "
+                $ map (mkIdent . fst)
+                $ unMR mr
+        values = mconcat
+                 $ L.intersperse ", "
+                 $ map (mkValue . snd)
+                 $ unMR mr
+    in [sqlExp|INSERT INTO ^{mkIdent tname}
+               (^{names}) VALUES (^{values})|]
 
 
 -- | Same as 'selectEntity' but generates INSERT query
