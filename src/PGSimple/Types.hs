@@ -24,6 +24,7 @@ import Control.Monad.Catch
 import Control.Monad.Cont.Class ( MonadCont )
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.IO.Class ( MonadIO(..) )
+import Control.Monad.Logger
 import Control.Monad.Reader
     ( MonadFix, MonadTrans, ReaderT(..),
       MonadReader(..), withReaderT )
@@ -150,7 +151,7 @@ newtype PgMonadT m a =
                , MonadState s, MonadError e, MonadTrans
                , Alternative, MonadFix, MonadPlus, MonadIO
                , MonadCont, MonadThrow, MonadCatch, MonadMask
-               , MonadBase b )
+               , MonadBase b, MonadLogger )
 
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
     type StM (PgMonadT m) a = StM (ReaderT Connection m) a

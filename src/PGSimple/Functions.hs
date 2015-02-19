@@ -35,6 +35,7 @@ import Blaze.ByteString.Builder ( toByteString )
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
+import Control.Monad.Logger
 import Control.Monad.Trans.Control
 import Data.Int ( Int64 )
 import Data.Maybe ( listToMaybe )
@@ -58,7 +59,7 @@ import PGSimple.TH
 import PGSimple.Types
 
 import qualified Data.List as L
-
+import qualified Data.Text.Encoding as T
 
 pgWithTransaction :: (HasPostgres m, MonadBaseControl IO m) => m a -> m a
 pgWithTransaction action = withPGConnection $ \con -> do
@@ -85,11 +86,12 @@ pgWithSavepoint action = withPGConnection $ \con -> do
 --
 -- Which is almost the same. In both cases proper value escaping is
 -- performed
-pgQuery :: (HasPostgres m, ToSqlBuilder q, FromRow r)
+pgQuery :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
         => q -> m [r]
-pgQuery q = withPGConnection $ \c -> liftBase $ do
-    b <- runSqlBuilder c $ toSqlBuilder q
-    query_ c b
+pgQuery q = withPGConnection $ \c -> do
+    b <- liftBase $ runSqlBuilder c $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 $ fromQuery b
+    liftBase $ query_ c b
 
 pgReturning :: (HasPostgres m, ToRow q, FromRow r)
             => Query -> [q] -> m [r] --  FIXME: make many rows interpolatable with builder
@@ -98,18 +100,19 @@ pgReturning q ps =
     $ \c -> liftBase
             $ returning c q ps
 
-pgExecute :: (HasPostgres m, ToSqlBuilder q)
+pgExecute :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
           => q -> m Int64
-pgExecute q = withPGConnection $ \c -> liftBase $ do
-    b <- runSqlBuilder c $ toSqlBuilder q
-    execute_ c b
+pgExecute q = withPGConnection $ \c -> do
+    b <- liftBase $ runSqlBuilder c $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 $ fromQuery b
+    liftBase $ execute_ c b
 
 pgExecuteMany :: (HasPostgres m, ToRow q)
               => Query -> [q] -> m Int64 --  FIXME: make many rows interpolatable
 pgExecuteMany q ps =
     withPGConnection $ \c -> liftBase $ executeMany c q ps
 
-pgInsertEntity :: forall a m. (HasPostgres m, Entity a,
+pgInsertEntity :: forall a m. (HasPostgres m, MonadLogger m, Entity a,
                          ToRow a, FromField (EntityId a))
                => a
                -> m (EntityId a)
@@ -137,7 +140,7 @@ pgInsertEntity a = do
 --         [10]
 --    -- Here the query will be: SELECT ... FROM tbl AS t INNER JOIN ...
 -- @
-pgSelectEntities :: forall m a q. ( Functor m, HasPostgres m, Entity a
+pgSelectEntities :: forall m a q. ( Functor m, HasPostgres m, MonadLogger m, Entity a
                             , FromRow a, ToSqlBuilder q, FromField (EntityId a) )
                  => ([Text] -> [Text])
                  -> q            -- ^ part of query just after __SELECT .. FROM table__
@@ -150,7 +153,7 @@ pgSelectEntities fpref q = do
     selectQ = [sqlExp|^{selectEntity (entityFieldsSimple fpref) p} ^{q}|]
 
 -- | Same as 'pgSelectEntities' but do not select id
-pgSelectJustEntities :: forall m a q. ( Functor m, HasPostgres m, Entity a
+pgSelectJustEntities :: forall m a q. ( Functor m, HasPostgres m, MonadLogger m, Entity a
                                  , FromRow a, ToSqlBuilder q )
                      => ([Text] -> [Text])
                      -> q
@@ -159,7 +162,7 @@ pgSelectJustEntities fpref q = do
     let p = Proxy :: Proxy a
     pgQuery [sqlExp|^{selectEntity (entityFields id fpref) p} ^{q}|]
 
-pgSelectEntitiesBy :: ( Functor m, HasPostgres m, Entity a, ToMarkedRow b
+pgSelectEntitiesBy :: ( Functor m, HasPostgres m, MonadLogger m, Entity a, ToMarkedRow b
                      , FromRow a, FromField (EntityId a) )
                    => b -> m [Ent a]
 pgSelectEntitiesBy b =
@@ -179,7 +182,7 @@ pgSelectEntitiesBy b =
 --         >>= maybe notFound return
 -- @
 pgGetEntity :: forall m a. (ToField (EntityId a), Entity a,
-                      HasPostgres m, FromRow a, Functor m)
+                      HasPostgres m, MonadLogger m, FromRow a, Functor m)
             => EntityId a
             -> m (Maybe a)
 pgGetEntity eid = do
@@ -202,7 +205,7 @@ pgGetEntity eid = do
 -- @
 -- pgQuery "SELECT id, name, phone ... FROM users WHERE name = ? AND active = ?" (name, True)
 -- @
-pgGetEntityBy :: forall m a b. ( Entity a, HasPostgres m, ToMarkedRow b
+pgGetEntityBy :: forall m a b. ( Entity a, HasPostgres m, MonadLogger m, ToMarkedRow b
                          , FromField (EntityId a), FromRow a, Functor m )
               => b               -- ^ uniq constrained list of fields and values
               -> m (Maybe (Ent a))
@@ -215,7 +218,7 @@ pgGetEntityBy b =
 
 
 -- | Same as 'pgInsertEntity' but insert many entities at on action
-pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, ToRow a)
+pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a)
                      => [a]
                      -> m ()
 pgInsertManyEntities a = (error "FIXME: pgInsertManyEntities ") --  someInsertManyEntities pgExecuteMany a
@@ -228,7 +231,7 @@ pgInsertManyEntities a = (error "FIXME: pgInsertManyEntities ") --  someInsertMa
 -- rmUser uid = do
 --     pgDeleteEntity uid
 -- @
-pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, ToField (EntityId a), Functor m)
+pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToField (EntityId a), Functor m)
                => EntityId a
                -> m ()
 pgDeleteEntity eid =
@@ -252,7 +255,7 @@ pgDeleteEntity eid =
 --         (Proxy :: Proxy User)
 --         [("active" :: Query, toField False)]
 -- @
-pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, HasPostgres m,
+pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, HasPostgres m, MonadLogger m,
                            ToField (EntityId a), Functor m, Typeable a, Typeable b)
                => EntityId a
                -> b
@@ -275,7 +278,7 @@ pgUpdateEntity eid b =
 --     pgSelectCount (Proxy :: Proxy User)
 --         "WHERE active = ?" [True]
 -- @
-pgSelectCount :: forall m a q. ( Entity a, HasPostgres m, ToSqlBuilder q )
+pgSelectCount :: forall m a q. ( Entity a, HasPostgres m, MonadLogger m, ToSqlBuilder q )
               => Proxy a
               -> q
               -> m Integer
@@ -286,7 +289,7 @@ pgSelectCount p q = do
 
 
 -- | Perform repsert of the same row, first trying "update where" then "insert" with concatenated fields
-pgRepsertRow :: (HasPostgres m, ToMarkedRow wrow, ToMarkedRow urow)
+pgRepsertRow :: (HasPostgres m, MonadLogger m, ToMarkedRow wrow, ToMarkedRow urow)
              => Text              -- ^ Table name
              -> wrow              -- ^ where condition
              -> urow              -- ^ update row
