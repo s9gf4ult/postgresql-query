@@ -29,6 +29,7 @@ import Control.Monad.Reader
       MonadReader(..), withReaderT )
 import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
+import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Except
@@ -58,6 +59,8 @@ import PGSimple.SqlBuilder
 
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
+import qualified Control.Monad.Trans.Writer.Lazy as WL
+import qualified Control.Monad.Trans.Writer.Strict as WS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
@@ -124,7 +127,20 @@ instance (HasPostgres m) => HasPostgres (STS.StateT s m) where
         STS.StateT $ \s -> withPGConnection $ \con ->
             STS.runStateT (action con) s
 
+instance (HasPostgres m) => HasPostgres (ContT r m) where
+    withPGConnection action = do
+        ContT $ \r -> withPGConnection $ \con ->
+            runContT (action con) r
 
+instance (HasPostgres m, Monoid w) => HasPostgres (WL.WriterT w m) where
+    withPGConnection action = do
+        WL.WriterT $ withPGConnection $ \con ->
+            WL.runWriterT (action con)
+
+instance (HasPostgres m, Monoid w) => HasPostgres (WS.WriterT w m) where
+    withPGConnection action = do
+        WS.WriterT $ withPGConnection $ \con ->
+            WS.runWriterT (action con)
 
 
 newtype PgMonadT m a =
