@@ -11,6 +11,7 @@ module PGSimple.Functions
        , pgInsertManyEntities
          -- * Selecting entities
        , pgSelectEntities
+       , pgSelectEntitiesBy
        , pgSelectJustEntities
        , pgGetEntity
        , pgGetEntityBy
@@ -25,12 +26,14 @@ module PGSimple.Functions
        , ToMarkedRow(..)
        , mkIdent
        , mkValue
+       , pgRepsertRow
        ) where
 
 import Prelude
 
 import Blaze.ByteString.Builder ( toByteString )
 import Control.Applicative
+import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Data.Int ( Int64 )
@@ -152,7 +155,7 @@ pgSelectJustEntities fpref q = do
     pgQuery [sqlExp|^{selectEntity (entityFields id fpref) p} ^{q}|]
 
 pgSelectEntitiesBy :: ( Functor m, HasPostgres m, Entity a, ToMarkedRow b
-                     , FromRow a, FromField (EntityId a), FromField (EntityId a) )
+                     , FromRow a, FromField (EntityId a) )
                    => b -> m [Ent a]
 pgSelectEntitiesBy b =
     let mr = toMarkedRow b
@@ -274,3 +277,21 @@ pgSelectCount :: forall m a q. ( Entity a, HasPostgres m, ToSqlBuilder q )
 pgSelectCount p q = do
     [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{mkIdent $ tableName p} ^{q}|]
     return c
+
+
+
+-- | Perform repsert of the same row, first trying "update where" then "insert" with concatenated fields
+pgRepsertRow :: (HasPostgres m, ToMarkedRow wrow, ToMarkedRow urow)
+             => Text              -- ^ Table name
+             -> wrow              -- ^ where condition
+             -> urow              -- ^ update row
+             -> m ()
+pgRepsertRow tname wrow urow = do
+    let wmr = toMarkedRow wrow
+    aff <- pgExecute $ updateTable tname urow
+           [sqlExp|WHERE ^{mrToBuilder "AND" wmr}|]
+    when (aff == 0) $ do
+        let umr = toMarkedRow urow
+            imr = wmr <> umr
+        _ <- pgExecute $ insertInto tname imr
+        return ()

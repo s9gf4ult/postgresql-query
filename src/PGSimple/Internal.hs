@@ -12,6 +12,7 @@ module PGSimple.Internal
        , selectEntity
        , insertInto
        , insertEntity
+       , updateTable
        ) where
 
 
@@ -152,9 +153,10 @@ selectEntity bld p =
     [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
 
 
+-- | Generate __INSERT INTO__ query
 insertInto :: (ToMarkedRow b)
            => Text               -- ^ table name
-           -> b                  -- ^ list of pairs (name, value)
+           -> b                  -- ^ list of pairs (name, value) to insert into
            -> SqlBuilder
 insertInto tname b =
     let mr = toMarkedRow b
@@ -183,3 +185,15 @@ insertEntity a =
                  $ toRow a
     in [sqlExp| INSERT INTO ^{mkIdent $ tableName p}
                 (^{names}) VALUES (^{values}) |]
+
+
+updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
+            => Text              -- ^ table name
+            -> flds              -- ^ fields to update
+            -> q                 -- ^ condition
+            -> SqlBuilder
+updateTable tname flds q =
+    let mr = toMarkedRow flds
+        setFields = mrToBuilder ", " mr
+    in [sqlExp|UPDATE ^{mkIdent tname}
+               SET ^{setFields} ^{q}|]
