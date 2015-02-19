@@ -31,6 +31,8 @@ import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.Either
+import Control.Monad.Trans.Except
+import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
 import Data.Int ( Int64 )
@@ -54,9 +56,10 @@ import Database.PostgreSQL.Simple.Types
     ( Query(..) )
 import PGSimple.SqlBuilder
 
+import qualified Control.Monad.Trans.State.Lazy as STL
+import qualified Control.Monad.Trans.State.Strict as STS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-
 
 
 -- | type to put and get from db 'inet' and 'cidr' typed postgresql
@@ -86,21 +89,43 @@ instance FromField InetText where
 class (MonadBase IO m) => HasPostgres m where
     withPGConnection :: (Connection -> m a) -> m a
 
-instance (HasPostgres m) => HasPostgres (ReaderT r m) where
-    withPGConnection action = do
-        r <- ask
-        lift $ withPGConnection $ \con ->
-            runReaderT (action con) r
-
 instance (HasPostgres m) => HasPostgres (EitherT e m) where
     withPGConnection action = do
         EitherT $ withPGConnection $ \con -> do
             runEitherT $ action con
 
+instance (HasPostgres m) => HasPostgres (ExceptT e m) where
+    withPGConnection action = do
+        ExceptT $ withPGConnection $ \con -> do
+            runExceptT $ action con
+
+instance (HasPostgres m) => HasPostgres (IdentityT m) where
+    withPGConnection action = do
+        IdentityT $ withPGConnection $ \con -> do
+            runIdentityT $ action con
+
 instance (HasPostgres m) => HasPostgres (MaybeT m) where
     withPGConnection action = do
         MaybeT $ withPGConnection $ \con -> do
             runMaybeT $ action con
+
+instance (HasPostgres m) => HasPostgres (ReaderT r m) where
+    withPGConnection action = do
+        ReaderT $ \r -> withPGConnection $ \con ->
+            runReaderT (action con) r
+
+instance (HasPostgres m) => HasPostgres (STL.StateT s m) where
+    withPGConnection action = do
+        STL.StateT $ \s -> withPGConnection $ \con ->
+            STL.runStateT (action con) s
+
+instance (HasPostgres m) => HasPostgres (STS.StateT s m) where
+    withPGConnection action = do
+        STS.StateT $ \s -> withPGConnection $ \con ->
+            STS.runStateT (action con) s
+
+
+
 
 newtype PgMonadT m a =
     PgMonadT
@@ -108,7 +133,7 @@ newtype PgMonadT m a =
     } deriving ( Functor, Applicative, Monad , MonadWriter w
                , MonadState s, MonadError e, MonadTrans
                , Alternative, MonadFix, MonadPlus, MonadIO
-               , MonadCont , MonadThrow, MonadCatch, MonadMask
+               , MonadCont, MonadThrow, MonadCatch, MonadMask
                , MonadBase b )
 
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
@@ -118,9 +143,11 @@ instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
     restoreM st = PgMonadT $ restoreM st
 
 
-instance MonadTransControl PgMonadT
-         --  FIXME: implement
-
+instance MonadTransControl PgMonadT where
+    type StT PgMonadT a = StT (ReaderT Connection) a
+    liftWith action = PgMonadT $ do
+        liftWith $ \runTrans -> action (runTrans . unPgMonadT)
+    restoreT st = PgMonadT $ restoreT st
 
 instance (MonadReader r m) => MonadReader r (PgMonadT m) where
     ask = lift ask
