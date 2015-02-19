@@ -30,7 +30,6 @@ import Control.Monad.Reader
 import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
-    ( MonadBaseControl, MonadTransControl )
 import Control.Monad.Trans.Either
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
@@ -112,8 +111,12 @@ newtype PgMonadT m a =
                , MonadCont , MonadThrow, MonadCatch, MonadMask
                , MonadBase b )
 
-instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m)
-         --  FIXME: implement
+instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
+    type StM (PgMonadT m) a = StM (ReaderT Connection m) a
+    liftBaseWith action = PgMonadT $ do
+        liftBaseWith $ \runInBase -> action (runInBase . unPgMonadT)
+    restoreM st = PgMonadT $ restoreM st
+
 
 instance MonadTransControl PgMonadT
          --  FIXME: implement
