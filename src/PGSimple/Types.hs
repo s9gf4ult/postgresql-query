@@ -15,19 +15,17 @@ module PGSimple.Types
 
 import Prelude
 
-import Blaze.ByteString.Builder ( toByteString )
 import Control.Applicative ( Alternative, Applicative )
 import Control.Monad ( MonadPlus )
 import Control.Monad.Base ( MonadBase(..) )
 import Control.Monad.Catch
-    ( MonadThrow, MonadMask(mask), MonadCatch, onException )
+    ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Cont.Class ( MonadCont )
 import Control.Monad.Error.Class ( MonadError )
-import Control.Monad.IO.Class ( MonadIO(..) )
+import Control.Monad.Fix ( MonadFix(..) )
 import Control.Monad.Logger
 import Control.Monad.Reader
-    ( MonadFix, MonadTrans, ReaderT(..),
-      MonadReader(..), withReaderT )
+    ( MonadReader(..), ReaderT(..) )
 import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
 import Control.Monad.Trans.Cont
@@ -37,26 +35,16 @@ import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
-import Data.Int ( Int64 )
 import Data.Monoid ( Monoid )
-import Data.Pool ( Pool, withResource )
 import Data.Proxy ( Proxy )
 import Data.String ( IsString )
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
-    ( ToRow, Connection, FromRow, rollback,
-      commit, begin, execute_, returning,
-      query_, query, executeMany, execute )
 import Database.PostgreSQL.Simple.FromField
-    ( ResultError(..), FromField(..), typename, returnError )
+    ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
-    ( Action, ToField )
-import Database.PostgreSQL.Simple.Transaction
-    ( TransactionMode, defaultTransactionMode, beginMode )
-import Database.PostgreSQL.Simple.Types
-    ( Query(..) )
-import PGSimple.SqlBuilder
+    ( ToField )
 
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
@@ -171,7 +159,6 @@ instance (MonadReader r m) => MonadReader r (PgMonadT m) where
     local md ac = do
         con <- PgMonadT ask
         lift $ do
-            r <- ask
             local md $ runPgMonadT con ac
     reader = lift . reader
 

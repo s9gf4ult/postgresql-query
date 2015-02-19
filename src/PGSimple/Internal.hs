@@ -18,31 +18,21 @@ module PGSimple.Internal
 
 import Prelude
 
-import Control.Applicative ( (<$>) )
-import Control.Monad ( unless )
-import Data.Maybe ( listToMaybe )
-import Data.Monoid ( Monoid(..), (<>) )
+import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
-import Data.Typeable ( Typeable, typeRep )
-import Database.PostgreSQL.Simple as PG
-    ( Query, Only(Only), type (:.)(..) )
-import Database.PostgreSQL.Simple.FromField ( FromField )
-import Database.PostgreSQL.Simple.FromRow
-    ( FromRow(..) )
+import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple.ToField
     ( Action, ToField(..) )
 import Database.PostgreSQL.Simple.ToRow
     ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types
-    ( Query(..), Identifier(..) )
+    ( Identifier(..) )
 import GHC.Generics ( Generic )
 import PGSimple.SqlBuilder
 import PGSimple.TH
 import PGSimple.Types
 
-import qualified Data.ByteString as BS
-import qualified Data.Set as S
 import qualified Data.List as L
 
 
