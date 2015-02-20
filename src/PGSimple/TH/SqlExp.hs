@@ -75,7 +75,7 @@ cleanLit t = either error id
     go = fmap mconcat
          $ many1' tok
     tok = choice [ quoted       -- quoted string
-                 , dquoted      -- quoted identifier
+                 , iquoted      -- quoted identifier
                  , comment      -- line comment
                  , bcomment     -- block comment
                  , spaces       -- sequence of spaces
@@ -88,56 +88,52 @@ cleanLit t = either error id
         return ""
     word = takeWhile1 (not . isSpace)
     spaces = takeWhile1 isSpace *> return " "
-    quoted = do
-        _ <- char '\''
-        b <- qbody '\''
-        return $ "'" <> b <> "'"
-    dquoted = do
-        _ <- char '"'
-        b <- qbody '"'
-        return $ "\"" <> b <> "\""
-    peekCharErr e = peekChar >>= \case -- peek char or fail all parser
-        Nothing -> error e
-        Just r -> return r
-    anyCharErr e = peekCharErr e <* anyChar -- get char or fail parser
 
+    eofErf e p =
+        choice
+        [ endOfInput
+          *> (error $ "Unexpected end of input: " <> e)
+        , p
+        ]
+
+    bcomment :: Parser Text
     bcomment = do
         _ <- string "/*"
         _ <- many' $ choice
              [ bcomment
              , justStar
-             , notStar ]
-        _ <- string "*/"
-        return ""
+             , T.singleton <$> notChar '*'
+             ]
+        eofErf "block comment not finished, maybe typo" $ do
+            _ <- string "*/"
+            return ""
       where
         justStar = do
             _ <- char '*'
             peekChar >>= \case
                 (Just '/') -> fail "no way"
                 _ -> return ""
-        notStar = anyChar >>= \case
-            '*' -> fail "no way"
-            _ -> return ""
 
-    qbody :: Char -> Parser Text
-    qbody qch = qbodygo ""
-      where
-        qbodygo acc = do
-            x <- takeWhile (`notElem` ['\\', qch])
-            ch1 <- anyCharErr "End of quotation without ending quote symbol"
-            case ch1 of
-                '\\' -> do           -- eat any symbol after backslash
-                    ch2 <- anyCharErr "Backshash can not be at the end of literal string"
-                    qbodygo $ acc <> x <> (T.pack [ch1, ch2])
-                ((== qch) -> True) -> do           -- eat double single quote or stop
-                    ch2 <- peekChar
-                    case ch2 of
-                        ((== (Just qch)) -> True) -> do
-                            _ <- anyChar -- consume observed '\'' char
-                            qbodygo $ acc <> x <> (T.pack [qch, qch])
-                        _ -> return $ acc <> x
-                _ -> error "wrong symbol found, this is a bug!"
+    quoted = do
+        _ <- char '\''
+        ret <- many' $ choice
+               [ string "''"
+               , string "\\'"
+               , T.singleton <$> notChar '\''
+               ]
+        eofErf "string literal not finished" $ do
+            _ <- char '\''
+            return $ "'" <> mconcat ret <> "'"
 
+    iquoted = do
+        _ <- char '"'
+        ret <- many' $ choice
+               [ string "\"\""
+               , T.singleton <$> notChar '"'
+               ]
+        eofErf "quoted identifier not finished" $ do
+            _ <- char '"'
+            return $ "\"" <> mconcat ret <> "\""
 
 
 
