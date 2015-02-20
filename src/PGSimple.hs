@@ -6,9 +6,9 @@ module PGSimple
        , module PGSimple.SqlBuilder
            -- * Some re-exports from postgresql-simple
        , Connection, connect, defaultConnectInfo, connectPostgreSQL
-       , ToField(..), ToRow(..), FromField(..), FromRow(..)
-       , Query(..), Only(..), In(..), Oid(..), Values(..)
-       , (:.)(..), PGArray(..) , HStoreList(..), HStoreMap(..)
+       , ConnectInfo(..) , ToField(..), ToRow(..), FromField(..)
+       , FromRow(..), Query(..), Only(..), In(..), Oid(..), Values(..)
+       , (:.)(..), PGArray(..), HStoreList(..), HStoreMap(..)
        , ToHStore(..), HStoreBuilder , hstore, parseHStoreList
        , ToHStoreText(..), HStoreText , sqlQQ
        ) where
@@ -16,7 +16,7 @@ module PGSimple
 
 import Database.PostgreSQL.Simple
     ( ToRow, Connection, FromRow, defaultConnectInfo,
-      connectPostgreSQL, connect )
+      connectPostgreSQL, connect, ConnectInfo(..) )
 import Database.PostgreSQL.Simple.FromField ( FromField(..) )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..) )
 import Database.PostgreSQL.Simple.HStore hiding
