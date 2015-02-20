@@ -40,6 +40,7 @@ prop_RopeParser ::  NonEmptyList Rope -> Result
 prop_RopeParser (NonEmpty rope) =
     (Right $ squashRope rope) ==? (fmap squashRope $ parseOnly ropeParser $ flattenRope rope)
 
+case_cleanLit :: Assertion
 case_cleanLit =
     mapM_ (\(a, b) -> a @=? (cleanLit b))
     [ ("hello hello", "hello     hello")
@@ -51,8 +52,11 @@ case_cleanLit =
     , ("'''\\'''''\\'' ", "'''\\'''''\\'' ")
     , (" \"    ident    \" ", " \"    ident    \" ")
     , (" one - two -> plus ", " one -    \n  two    -> plus -- \n")
+    , ("xxx ", "xxx /* thus must eliminate */")
+    , ("xxx  xxx", "xxx /* bla /* nested */ \n comment */ xxx")
     ]
 
+mainGroup :: TestTree
 mainGroup = $testGroupGenerator
 
 main :: IO ()
