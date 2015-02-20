@@ -7,6 +7,8 @@ module PGSimple.TH.SqlExp
        , ropeParser
        , parseRope
        , squashRope
+       , cleanLiterals
+       , cleanLit
        , buildQ
          -- * Template haskell
        , sqlQExp
@@ -71,7 +73,7 @@ cleanLit t = either error id
              $ parseOnly go t
   where
     go = fmap mconcat
-         $ many' tok
+         $ many1' tok
     tok = quoted <|> dquoted <|> comment <|> word <|> spaces <|> minus
     minus = do
         _ <- char '-'

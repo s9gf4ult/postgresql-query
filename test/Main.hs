@@ -10,7 +10,9 @@ import Test.QuickCheck.Assertions
 import Test.QuickCheck.Instances ()
 import Test.QuickCheck.Modifiers
 import Test.Tasty
+import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
+import Test.Tasty.TH
 
 import qualified Data.Text as T
 
@@ -34,13 +36,25 @@ flattenRope = mconcat . map f
     f (RInt t) = "#{" <> t <> "}"
     f (RPaste t) = "^{" <> t <> "}"
 
-propRopeParser ::  NonEmptyList Rope -> Result
-propRopeParser (NonEmpty rope) =
+prop_RopeParser ::  NonEmptyList Rope -> Result
+prop_RopeParser (NonEmpty rope) =
     (Right $ squashRope rope) ==? (fmap squashRope $ parseOnly ropeParser $ flattenRope rope)
 
+case_cleanLit =
+    mapM_ (\(a, b) -> a @=? (cleanLit b))
+    [ ("hello hello", "hello     hello")
+    , ("'hello     hello    '",  "'hello     hello    '")
+    , (" SELECT ", " SELECT   --     ")
+    , ("xxx '  ''  '", "xxx     '  ''  '")
+    , ("xxx xxx  xxx", "xxx   xxx --     \n     xxx")
+    , (" '    ''\\'' ", "    '    ''\\''     ")
+    , ("'''\\'''''\\'' ", "'''\\'''''\\'' ")
+    , (" \"    ident    \" ", " \"    ident    \" ")
+    , (" one - two -> plus ", " one -    \n  two    -> plus -- \n")
+    ]
+
+mainGroup = $testGroupGenerator
 
 main :: IO ()
 main = do
-    defaultMain
-        $ testGroup "TH Rope parser"
-        [ testProperty "parses correct" propRopeParser ]
+    defaultMain mainGroup
