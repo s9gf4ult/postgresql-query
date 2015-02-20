@@ -74,19 +74,19 @@ cleanLit t = either error id
   where
     go = fmap mconcat
          $ many1' tok
-    tok = quoted <|> dquoted <|> comment <|> word <|> spaces <|> minus
-    minus = do
-        _ <- char '-'
-        peekChar >>= \case
-            (Just '-') -> fail ""
-            _ -> return "-"
+    tok = choice [ quoted       -- quoted string
+                 , dquoted      -- quoted identifier
+                 , comment      -- line comment
+                 , bcomment     -- block comment
+                 , spaces       -- sequence of spaces
+                 , word         -- sequence of nonspace chars
+                 ]
     comment = do
         _ <- string "--"
         skipWhile (`notElem` ['\r', '\n'])
-        endOfLine
+        endOfLine <|> endOfInput
         return ""
-    word = takeWhile1 isWord
-    isWord ch = not $ isSpace ch || elem ch ['\'', '"', '-']
+    word = takeWhile1 (not . isSpace)
     spaces = takeWhile1 isSpace *> return " "
     quoted = do
         _ <- char '\''
@@ -100,6 +100,24 @@ cleanLit t = either error id
         Nothing -> error e
         Just r -> return r
     anyCharErr e = peekCharErr e <* anyChar -- get char or fail parser
+
+    bcomment = do
+        _ <- string "/*"
+        _ <- many' $ choice
+             [ bcomment
+             , justStar
+             , notStar ]
+        _ <- string "*/"
+        return ""
+      where
+        justStar = do
+            _ <- char '*'
+            peekChar >>= \case
+                (Just '/') -> fail "no way"
+                _ -> return ""
+        notStar = anyChar >>= \case
+            '*' -> fail "no way"
+            _ -> return ""
 
     qbody :: Char -> Parser Text
     qbody qch = qbodygo ""
@@ -119,6 +137,8 @@ cleanLit t = either error id
                             qbodygo $ acc <> x <> (T.pack [qch, qch])
                         _ -> return $ acc <> x
                 _ -> error "wrong symbol found, this is a bug!"
+
+
 
 
 
