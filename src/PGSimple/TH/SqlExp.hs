@@ -19,6 +19,7 @@ import Control.Applicative
 import Control.Monad ( when )
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Text
+import Data.Char ( isSpace )
 import Data.FileEmbed ( bsToExp )
 import Data.Monoid
 import Data.Text ( Text )
@@ -58,9 +59,69 @@ squashRope ((RLit a):(RLit b):xs) = squashRope ((RLit $ a <> b):xs)
 squashRope (x:xs) = x:(squashRope xs)
 squashRope [] = []
 
+
+cleanLiterals :: [Rope] -> [Rope]
+cleanLiterals [] = []
+cleanLiterals ((RLit t):xs) = (RLit $ cleanLit t):(cleanLiterals xs)
+cleanLiterals (x:xs) = x:(cleanLiterals xs)
+
+-- | Remove sequential spaces and line comments
+cleanLit :: Text -> Text
+cleanLit t = either error id
+             $ parseOnly go t
+  where
+    go = fmap mconcat
+         $ many' tok
+    tok = quoted <|> dquoted <|> comment <|> word <|> spaces <|> minus
+    minus = do
+        _ <- char '-'
+        peekChar >>= \case
+            (Just '-') -> fail ""
+            _ -> return "-"
+    comment = do
+        _ <- string "--"
+        skipWhile (`notElem` ['\r', '\n'])
+        endOfLine
+        return ""
+    word = takeWhile1 isWord
+    isWord ch = not $ isSpace ch || elem ch ['\'', '"', '-']
+    spaces = takeWhile1 isSpace *> return " "
+    quoted = do
+        _ <- char '\''
+        b <- qbody '\''
+        return $ "'" <> b <> "'"
+    dquoted = do
+        _ <- char '"'
+        b <- qbody '"'
+        return $ "\"" <> b <> "\""
+    peekCharErr e = peekChar >>= \case -- peek char or fail all parser
+        Nothing -> error e
+        Just r -> return r
+    anyCharErr e = peekCharErr e <* anyChar -- get char or fail parser
+
+    qbody :: Char -> Parser Text
+    qbody qch = qbodygo ""
+      where
+        qbodygo acc = do
+            x <- takeWhile (`notElem` ['\\', qch])
+            ch1 <- anyCharErr "End of quotation without ending quote symbol"
+            case ch1 of
+                '\\' -> do           -- eat any symbol after backslash
+                    ch2 <- anyCharErr "Backshash can not be at the end of literal string"
+                    qbodygo $ acc <> x <> (T.pack [ch1, ch2])
+                ((== qch) -> True) -> do           -- eat double single quote or stop
+                    ch2 <- peekChar
+                    case ch2 of
+                        ((== (Just qch)) -> True) -> do
+                            _ <- anyChar -- consume observed '\'' char
+                            qbodygo $ acc <> x <> (T.pack [qch, qch])
+                        _ -> return $ acc <> x
+                _ -> error "wrong symbol found, this is a bug!"
+
+
+
 ropeParser :: Parser [Rope]
-ropeParser = fmap squashRope
-             $ many1
+ropeParser = many1
              $ ropeLit <|> ropeInt <|> ropePaste <|> singleSpecial
   where
     specials = "^#"
@@ -111,7 +172,9 @@ buildQ r = do
 sqlQExp :: String
         -> Q Exp                 -- ^ Expression of type 'SqlBuilder'
 sqlQExp s = do
-    let rope = parseRope s
+    let rope = cleanLiterals
+               $ squashRope
+               $ parseRope s
     q <- buildQ rope
     exps <- mapM (buildBuilder q) rope
     [e| ( mconcat $(pure $ ListE exps) ) |]

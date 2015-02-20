@@ -36,7 +36,7 @@ flattenRope = mconcat . map f
 
 propRopeParser ::  NonEmptyList Rope -> Result
 propRopeParser (NonEmpty rope) =
-    (Right $ squashRope rope) ==? (parseOnly ropeParser $ flattenRope rope)
+    (Right $ squashRope rope) ==? (fmap squashRope $ parseOnly ropeParser $ flattenRope rope)
 
 
 main :: IO ()
