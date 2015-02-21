@@ -69,7 +69,8 @@ library
                , template-haskell
                , text
                , time
-               , transformers
+               , transformers                            < 0.4
+               , transformers-compat           >= 0.3
                , transformers-base
 
   ghc-options: -Wall

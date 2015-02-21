@@ -87,10 +87,12 @@ instance (HasPostgres m) => HasPostgres (EitherT e m) where
         EitherT $ withPGConnection $ \con -> do
             runEitherT $ action con
 
+#if MIN_VERSION_transformers(0, 4, 0)
 instance (HasPostgres m) => HasPostgres (ExceptT e m) where
     withPGConnection action = do
         ExceptT $ withPGConnection $ \con -> do
             runExceptT $ action con
+#endif
 
 instance (HasPostgres m) => HasPostgres (IdentityT m) where
     withPGConnection action = do
