@@ -161,14 +161,23 @@ newtype PgMonadT m a =
                , MonadBase b, MonadLogger )
 
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
+#if MIN_VERSION_monad_control(1, 0, 0)
     type StM (PgMonadT m) a = StM (ReaderT Connection m) a
+#else
+    type StM (PgMonadT m) = StM (ReaderT Connection m)
+#endif
     liftBaseWith action = PgMonadT $ do
         liftBaseWith $ \runInBase -> action (runInBase . unPgMonadT)
     restoreM st = PgMonadT $ restoreM st
 
 
+
 instance MonadTransControl PgMonadT where
+#if MIN_VERSION_monad_control(1, 0, 0)
     type StT PgMonadT a = StT (ReaderT Connection) a
+#else
+    type StT PgMonadT = StT (ReaderT Connection)
+#endif
     liftWith action = PgMonadT $ do
         liftWith $ \runTrans -> action (runTrans . unPgMonadT)
     restoreT st = PgMonadT $ restoreT st
