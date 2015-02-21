@@ -20,6 +20,7 @@ import Prelude
 
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
+import Data.String
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple.ToField
@@ -34,6 +35,7 @@ import PGSimple.TH
 import PGSimple.Types
 
 import qualified Data.List as L
+import qualified Data.Text as T
 
 
 
@@ -56,9 +58,15 @@ instance ToSqlBuilder FN where
         $ L.intersperse "."
         $ map mkIdent tt
 
+instance IsString FN where
+    fromString s = FN [T.pack s]
+
+textFN :: Text -> FN
+textFN = FN . (:[])
+
 newtype MR =
     MR
-    { unMR :: [(Text, SqlBuilder)]
+    { unMR :: [(FN, SqlBuilder)]
     } deriving (Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
@@ -82,40 +90,34 @@ mrToBuilder b (MR l) = mconcat
                        $ L.intersperse b
                        $ map tobld l
   where
-    tobld (f, val) = [sqlExp| ^{mkIdent f} = ^{val} |]
+    tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
 
--- | Fields of entity separated with coma. Each nested list is a dot-separated
--- identifiers, so __[["t", "field"], ["t2", "field"]] -> "t"."field", "t2"."field"__
-buildFields :: [[Text]] -> SqlBuilder
+-- | Fields of entity separated with coma.
+buildFields :: [FN] -> SqlBuilder
 buildFields flds = mconcat
                     $ L.intersperse ", "
-                    $ map toBld flds
-  where
-    toBld :: [Text] -> SqlBuilder
-    toBld tt = mconcat
-               $ L.intersperse "."
-               $ map mkIdent tt
+                    $ map toSqlBuilder flds
 
 -- | Build entity fields
 entityFields :: (Entity a)
-             => ([[Text]] -> [[Text]])      -- ^ modify list of fields
-             -> ([Text] -> [Text])          -- ^ modify each field name,
-                                          -- e.g. prepend each field with
-                                          -- prefix, like ("t":). Applied first
+             => ([FN] -> [FN])    -- ^ modify list of fields
+             -> (FN -> FN)        -- ^ modify each field name,
+                                -- e.g. prepend each field with
+                                -- prefix, like ("t":). Applied first
              -> Proxy a
              -> SqlBuilder
 entityFields xpref fpref p =
     buildFields
     $ xpref
-    $ map (fpref . (:[]))
+    $ map (fpref . FN . (:[]))
     $ fieldNames p
 
 entityFieldsSimple :: (Entity a)
-                   => ([Text] -> [Text])
+                   => (FN -> FN)
                    -> Proxy a
                    -> SqlBuilder
 entityFieldsSimple fpref p =
-    let xpref = ((fpref ["id"]):)
+    let xpref = ((fpref "id"):)
     in entityFields xpref fpref p
 
 -- | Generate SELECT query string
@@ -152,7 +154,7 @@ insertInto tname b =
     let mr = toMarkedRow b
         names = mconcat
                 $ L.intersperse ", "
-                $ map (mkIdent . fst)
+                $ map fst
                 $ unMR mr
         values = mconcat
                  $ L.intersperse ", "
@@ -161,20 +163,21 @@ insertInto tname b =
     in [sqlExp|INSERT INTO ^{mkIdent tname}
                (^{names}) VALUES (^{values})|]
 
+-- | Convert entity to marked row to perform inserts and anything else
+entityToMR :: forall a. (Entity a, ToRow a) => a -> MR
+entityToMR a =
+    let p = Proxy :: Proxy a
+        names = map textFN $ fieldNames p
+        values = map mkValue $ toRow a
+    in MR $ zip names values
+
 
 -- | Same as 'selectEntity' but generates INSERT query
 insertEntity :: forall a. (Entity a, ToRow a) => a -> SqlBuilder
 insertEntity a =
     let p = Proxy :: Proxy a
-        names = buildFields
-                $ map (:[])
-                $ fieldNames p
-        values = mconcat
-                 $ L.intersperse ", "
-                 $ map mkValue
-                 $ toRow a
-    in [sqlExp| INSERT INTO ^{mkIdent $ tableName p}
-                (^{names}) VALUES (^{values}) |]
+        mr = entityToMR a
+    in insertInto (tableName p) mr
 
 
 updateTable :: (ToSqlBuilder q, ToMarkedRow flds)

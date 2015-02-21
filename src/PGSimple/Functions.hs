@@ -144,7 +144,7 @@ pgInsertEntity a = do
 -- @
 pgSelectEntities :: forall m a q. ( Functor m, HasPostgres m, MonadLogger m, Entity a
                             , FromRow a, ToSqlBuilder q, FromField (EntityId a) )
-                 => ([Text] -> [Text])
+                 => (FN -> FN)
                  -> q            -- ^ part of query just after __SELECT .. FROM table__
                  -> m [Ent a]
 pgSelectEntities fpref q = do
@@ -157,7 +157,7 @@ pgSelectEntities fpref q = do
 -- | Same as 'pgSelectEntities' but do not select id
 pgSelectJustEntities :: forall m a q. ( Functor m, HasPostgres m, MonadLogger m, Entity a
                                  , FromRow a, ToSqlBuilder q )
-                     => ([Text] -> [Text])
+                     => (FN -> FN)
                      -> q
                      -> m [a]
 pgSelectJustEntities fpref q = do
