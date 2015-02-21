@@ -58,8 +58,8 @@ instance ToSqlBuilder FN where
 
 newtype MR =
     MR
-    { unMR :: [(Text, Action)]
-    } deriving (Show, Monoid, Typeable, Generic)
+    { unMR :: [(Text, SqlBuilder)]
+    } deriving (Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
     -- | generate list of pairs (field name, field value)
@@ -82,7 +82,7 @@ mrToBuilder b (MR l) = mconcat
                        $ L.intersperse b
                        $ map tobld l
   where
-    tobld (f, val) = [sqlExp| ^{mkIdent f} = #{val} |]
+    tobld (f, val) = [sqlExp| ^{mkIdent f} = ^{val} |]
 
 -- | Fields of entity separated with coma. Each nested list is a dot-separated
 -- identifiers, so __[["t", "field"], ["t2", "field"]] -> "t"."field", "t2"."field"__
@@ -156,7 +156,7 @@ insertInto tname b =
                 $ unMR mr
         values = mconcat
                  $ L.intersperse ", "
-                 $ map (mkValue . snd)
+                 $ map snd
                  $ unMR mr
     in [sqlExp|INSERT INTO ^{mkIdent tname}
                (^{names}) VALUES (^{values})|]
