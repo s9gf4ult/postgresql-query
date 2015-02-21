@@ -59,12 +59,16 @@ import PGSimple.Types
 import qualified Data.List as L
 import qualified Data.Text.Encoding as T
 
-pgWithTransaction :: (HasPostgres m, MonadBaseControl IO m) => m a -> m a
+-- | Execute all queries inside one transaction. Rollback transaction of exceptions
+pgWithTransaction :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+                  => m a
+                  -> m a
 pgWithTransaction action = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withTransaction con $ runInIO action
 
-pgWithSavepoint :: (HasPostgres m, MonadBaseControl IO m) => m a -> m a
+-- | Same as `pgWithTransaction` but executes queries inside savepoint
+pgWithSavepoint :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m) => m a -> m a
 pgWithSavepoint action = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withSavepoint con $ runInIO action

@@ -3,6 +3,7 @@ module PGSimple.Types
          InetText(..)
          -- * Connection pooling
        , HasPostgres(..)
+       , TransactionSafe(..)
          -- * Query execution monad
        , PgMonadT(..)
        , runPgMonadT
@@ -131,6 +132,22 @@ instance (HasPostgres m, Monoid w) => HasPostgres (WS.WriterT w m) where
         WS.WriterT $ withPGConnection $ \con ->
             WS.runWriterT (action con)
 
+-- | Empty typeclass signing monad in which transaction is
+-- safe. i.e. `PgMonadT` have this instance, but some other monad giving
+-- connection from e.g. connection pool is not.
+class TransactionSafe (m :: * -> *)
+
+instance (TransactionSafe m) => TransactionSafe (EitherT e m)
+instance (TransactionSafe m) => TransactionSafe (ExceptT e m)
+instance (TransactionSafe m) => TransactionSafe (IdentityT m)
+instance (TransactionSafe m) => TransactionSafe (MaybeT m)
+instance (TransactionSafe m) => TransactionSafe (ReaderT r m)
+instance (TransactionSafe m) => TransactionSafe (STL.StateT s m)
+instance (TransactionSafe m) => TransactionSafe (STS.StateT s m)
+instance (TransactionSafe m) => TransactionSafe (ContT r m)
+instance (TransactionSafe m, Monoid w) => TransactionSafe (WL.WriterT w m)
+instance (TransactionSafe m, Monoid w) => TransactionSafe (WS.WriterT w m)
+
 
 newtype PgMonadT m a =
     PgMonadT
@@ -168,6 +185,7 @@ instance (MonadBase IO m) => HasPostgres (PgMonadT m) where
         con <- PgMonadT ask
         action con
 
+instance TransactionSafe (PgMonadT m)
 
 
 runPgMonadT :: Connection -> PgMonadT m a -> m a
