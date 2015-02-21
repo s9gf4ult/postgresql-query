@@ -11,6 +11,7 @@ module PGSimple.Internal
        , entityFieldsSimple
        , selectEntity
        , insertInto
+       , insertManyEntities
        , insertEntity
        , updateTable
        ) where
@@ -190,3 +191,24 @@ updateTable tname flds q =
         setFields = mrToBuilder ", " mr
     in [sqlExp|UPDATE ^{mkIdent tname}
                SET ^{setFields} ^{q}|]
+
+
+insertManyEntities :: forall a. (Entity a, ToRow a) => [a] -> SqlBuilder
+insertManyEntities rows =
+    let p = Proxy :: Proxy a
+        names = mconcat
+                $ L.intersperse ","
+                $ map mkIdent
+                $ fieldNames p
+        values = mconcat
+                 $ L.intersperse ","
+                 $ map rValue rows
+    in [sqlExp|INSERT INTO ^{mkIdent $ tableName p}
+               (^{names}) VALUES ^{values}|]
+  where
+    rValue row =
+        let values = mconcat
+                     $ L.intersperse ","
+                     $ map mkValue
+                     $ toRow row
+        in [sqlExp|(^{values})|]

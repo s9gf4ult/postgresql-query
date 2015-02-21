@@ -3,9 +3,7 @@ module PGSimple.Functions
          pgWithTransaction
        , pgWithSavepoint
        , pgQuery
-       , pgReturning
        , pgExecute
-       , pgExecuteMany
          -- * Inserting entities
        , pgInsertEntity
        , pgInsertManyEntities
@@ -95,24 +93,12 @@ pgQuery q = withPGConnection $ \c -> do
     logDebugN $ T.decodeUtf8 $ fromQuery b
     liftBase $ query_ c b
 
-pgReturning :: (HasPostgres m, ToRow q, FromRow r)
-            => Query -> [q] -> m [r] --  FIXME: make many rows interpolatable with builder
-pgReturning q ps =
-    withPGConnection
-    $ \c -> liftBase
-            $ returning c q ps
-
 pgExecute :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
           => q -> m Int64
 pgExecute q = withPGConnection $ \c -> do
     b <- liftBase $ runSqlBuilder c $ toSqlBuilder q
     logDebugN $ T.decodeUtf8 $ fromQuery b
     liftBase $ execute_ c b
-
-pgExecuteMany :: (HasPostgres m, ToRow q)
-              => Query -> [q] -> m Int64 --  FIXME: make many rows interpolatable
-pgExecuteMany q ps =
-    withPGConnection $ \c -> liftBase $ executeMany c q ps
 
 pgInsertEntity :: forall a m. (HasPostgres m, MonadLogger m, Entity a,
                          ToRow a, FromField (EntityId a))
@@ -220,10 +206,12 @@ pgGetEntityBy b =
 
 
 -- | Same as 'pgInsertEntity' but insert many entities at on action
-pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a)
+pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a, FromField (EntityId a))
                      => [a]
-                     -> m ()
-pgInsertManyEntities a = (error "FIXME: pgInsertManyEntities ") --  someInsertManyEntities pgExecuteMany a
+                     -> m [EntityId a]
+pgInsertManyEntities ents =
+    let q = [sqlExp|^{insertManyEntities ents} RETURNING id|]
+    in map fromOnly <$> pgQuery q
 
 
 -- | Delete entity.
