@@ -3,7 +3,7 @@ module PGSimple.Types
          InetText(..)
          -- * Connection pooling
        , HasPostgres(..)
-       , TransactionSafe(..)
+       , TransactionSafe
          -- * Query execution monad
        , PgMonadT(..)
        , runPgMonadT
@@ -87,53 +87,61 @@ instance (HasPostgres m) => HasPostgres (EitherT e m) where
     withPGConnection action = do
         EitherT $ withPGConnection $ \con -> do
             runEitherT $ action con
+    {-# INLINABLE withPGConnection #-}
 
-#if MIN_VERSION_transformers(0, 4, 0)
 instance (HasPostgres m) => HasPostgres (ExceptT e m) where
     withPGConnection action = do
         ExceptT $ withPGConnection $ \con -> do
             runExceptT $ action con
-#endif
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (IdentityT m) where
     withPGConnection action = do
         IdentityT $ withPGConnection $ \con -> do
             runIdentityT $ action con
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (MaybeT m) where
     withPGConnection action = do
         MaybeT $ withPGConnection $ \con -> do
             runMaybeT $ action con
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (ReaderT r m) where
     withPGConnection action = do
         ReaderT $ \r -> withPGConnection $ \con ->
             runReaderT (action con) r
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (STL.StateT s m) where
     withPGConnection action = do
         STL.StateT $ \s -> withPGConnection $ \con ->
             STL.runStateT (action con) s
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (STS.StateT s m) where
     withPGConnection action = do
         STS.StateT $ \s -> withPGConnection $ \con ->
             STS.runStateT (action con) s
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m) => HasPostgres (ContT r m) where
     withPGConnection action = do
         ContT $ \r -> withPGConnection $ \con ->
             runContT (action con) r
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m, Monoid w) => HasPostgres (WL.WriterT w m) where
     withPGConnection action = do
         WL.WriterT $ withPGConnection $ \con ->
             WL.runWriterT (action con)
+    {-# INLINABLE withPGConnection #-}
 
 instance (HasPostgres m, Monoid w) => HasPostgres (WS.WriterT w m) where
     withPGConnection action = do
         WS.WriterT $ withPGConnection $ \con ->
             WS.runWriterT (action con)
+    {-# INLINABLE withPGConnection #-}
 
 -- | Empty typeclass signing monad in which transaction is
 -- safe. i.e. `PgMonadT` have this instance, but some other monad giving
@@ -167,26 +175,26 @@ instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
     liftBaseWith action = PgMonadT $ do
         liftBaseWith $ \runInBase -> action (runInBase . unPgMonadT)
     restoreM st = PgMonadT $ restoreM st
-    {-# INLINE liftBaseWith #-}
-    {-# INLINE restoreM #-}
+    {-# INLINABLE liftBaseWith #-}
+    {-# INLINABLE restoreM #-}
 
 instance MonadTransControl PgMonadT where
     type StT PgMonadT a = StT (ReaderT Connection) a
     liftWith action = PgMonadT $ do
         liftWith $ \runTrans -> action (runTrans . unPgMonadT)
     restoreT st = PgMonadT $ restoreT st
-    {-# INLINE liftWith #-}
-    {-# INLINE restoreT #-}
+    {-# INLINABLE liftWith #-}
+    {-# INLINABLE restoreT #-}
 #else
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
     newtype StM (PgMonadT m) a
-        = PgMTM
-        { unPgMTM :: StM (ReaderT Connection m) a
-        }
+        = PgMTM (StM (ReaderT Connection m) a)
     liftBaseWith action = PgMonadT $ do
         liftBaseWith $ \runInBase -> do
             action ((PgMTM `liftM`) . runInBase . unPgMonadT)
     restoreM (PgMTM st) = PgMonadT $ restoreM st
+    {-# INLINABLE liftBaseWith #-}
+    {-# INLINABLE restoreM #-}
 
 instance MonadTransControl PgMonadT where
     newtype StT PgMonadT a
@@ -196,8 +204,9 @@ instance MonadTransControl PgMonadT where
     liftWith action = PgMonadT $ do
         liftWith $ \runTrans -> do -- ReaderT Connection n a -> n (StT (ReaderT Connection n) a)
             action ((PgMTT `liftM`) . runTrans . unPgMonadT)
-
     restoreT st = PgMonadT $ restoreT $ unPgMTT `liftM` st
+    {-# INLINABLE liftWith #-}
+    {-# INLINABLE restoreT #-}
 #endif
 
 instance (MonadReader r m) => MonadReader r (PgMonadT m) where
@@ -207,12 +216,15 @@ instance (MonadReader r m) => MonadReader r (PgMonadT m) where
         lift $ do
             local md $ runPgMonadT con ac
     reader = lift . reader
-
+    {-# INLINABLE ask #-}
+    {-# INLINABLE local #-}
+    {-# INLINABLE reader #-}
 
 instance (MonadBase IO m) => HasPostgres (PgMonadT m) where
     withPGConnection action = do
         con <- PgMonadT ask
         action con
+    {-# INLINABLE withPGConnection #-}
 
 instance TransactionSafe (PgMonadT m)
 

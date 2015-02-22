@@ -41,8 +41,8 @@ import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
-    ( ToRow, FromRow, execute_, returning, query_,
-      executeMany, withTransaction, withSavepoint )
+    ( ToRow, FromRow, execute_, query_,
+      withTransaction, withSavepoint )
 import Database.PostgreSQL.Simple.FromField
     ( FromField )
 import Database.PostgreSQL.Simple.ToField

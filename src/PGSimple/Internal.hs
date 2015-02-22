@@ -25,7 +25,7 @@ import Data.String
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple.ToField
-    ( Action, ToField(..) )
+    ( ToField(..) )
 import Database.PostgreSQL.Simple.ToRow
     ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types
