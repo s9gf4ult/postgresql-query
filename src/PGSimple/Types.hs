@@ -16,8 +16,9 @@ module PGSimple.Types
 
 import Prelude
 
-import Control.Applicative ( Alternative, Applicative )
-import Control.Monad ( MonadPlus )
+
+import Control.Applicative
+import Control.Monad
 import Control.Monad.Base ( MonadBase(..) )
 import Control.Monad.Catch
     ( MonadThrow, MonadMask, MonadCatch )
@@ -160,27 +161,44 @@ newtype PgMonadT m a =
                , MonadCont, MonadThrow, MonadCatch, MonadMask
                , MonadBase b, MonadLogger )
 
+#if MIN_VERSION_monad_control(1,0,0)
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
-#if MIN_VERSION_monad_control(1, 0, 0)
     type StM (PgMonadT m) a = StM (ReaderT Connection m) a
-#else
-    type StM (PgMonadT m) = StM (ReaderT Connection m)
-#endif
     liftBaseWith action = PgMonadT $ do
         liftBaseWith $ \runInBase -> action (runInBase . unPgMonadT)
     restoreM st = PgMonadT $ restoreM st
-
-
+    {-# INLINE liftBaseWith #-}
+    {-# INLINE restoreM #-}
 
 instance MonadTransControl PgMonadT where
-#if MIN_VERSION_monad_control(1, 0, 0)
     type StT PgMonadT a = StT (ReaderT Connection) a
-#else
-    type StT PgMonadT = StT (ReaderT Connection)
-#endif
     liftWith action = PgMonadT $ do
         liftWith $ \runTrans -> action (runTrans . unPgMonadT)
     restoreT st = PgMonadT $ restoreT st
+    {-# INLINE liftWith #-}
+    {-# INLINE restoreT #-}
+#else
+instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
+    newtype StM (PgMonadT m) a
+        = PgMTM
+        { unPgMTM :: StM (ReaderT Connection m) a
+        }
+    liftBaseWith action = PgMonadT $ do
+        liftBaseWith $ \runInBase -> do
+            action ((PgMTM `liftM`) . runInBase . unPgMonadT)
+    restoreM (PgMTM st) = PgMonadT $ restoreM st
+
+instance MonadTransControl PgMonadT where
+    newtype StT PgMonadT a
+        = PgMTT
+          { unPgMTT :: StT (ReaderT Connection) a
+          }
+    liftWith action = PgMonadT $ do
+        liftWith $ \runTrans -> do -- ReaderT Connection n a -> n (StT (ReaderT Connection n) a)
+            action ((PgMTT `liftM`) . runTrans . unPgMonadT)
+
+    restoreT st = PgMonadT $ restoreT $ unPgMTT `liftM` st
+#endif
 
 instance (MonadReader r m) => MonadReader r (PgMonadT m) where
     ask = lift ask
