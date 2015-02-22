@@ -7,6 +7,7 @@ module PGSimple.Functions
          -- * Inserting entities
        , pgInsertEntity
        , pgInsertManyEntities
+       , pgInsertManyEntitiesId
          -- * Selecting entities
        , pgSelectEntities
        , pgSelectEntitiesBy
@@ -205,13 +206,23 @@ pgGetEntityBy b =
     in listToMaybe <$> pgSelectEntities id q
 
 
--- | Same as 'pgInsertEntity' but insert many entities at on action
-pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a, FromField (EntityId a))
-                     => [a]
-                     -> m [EntityId a]
-pgInsertManyEntities ents =
+-- | Same as 'pgInsertEntity' but insert many entities at on
+-- action. Returns list of id's of inserted entities
+pgInsertManyEntitiesId :: forall a m. ( Entity a, HasPostgres m, MonadLogger m
+                                , ToRow a, FromField (EntityId a))
+                       => [a]
+                       -> m [EntityId a]
+pgInsertManyEntitiesId ents =
     let q = [sqlExp|^{insertManyEntities ents} RETURNING id|]
     in map fromOnly <$> pgQuery q
+
+-- | Insert many entities without returning list of id like
+-- 'pgInsertManyEntitiesId' does
+pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a)
+                     => [a]
+                     -> m ()
+pgInsertManyEntities ents =
+    void $ pgExecute $ insertManyEntities ents
 
 
 -- | Delete entity.
