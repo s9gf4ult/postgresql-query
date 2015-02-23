@@ -14,8 +14,17 @@ import PGSimple.Types
 
 import qualified Data.List as L
 
+{- $setup
+>>> import Database.PostgreSQL.Simple
+>>> con <- connect defaultConnectInfo
+-}
 
--- | Generate fields separated by comma.
+
+{-| Generates comma separated list of field names
+
+>>> runSqlBuilder con $ buildFields ["u" <> "name", "u" <> "phone", "e" <> "email"]
+"\"u\".\"name\", \"u\".\"phone\", \"e\".\"email\""
+-}
 buildFields :: [FN] -> SqlBuilder
 buildFields flds = mconcat
                     $ L.intersperse ", "
