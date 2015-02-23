@@ -87,6 +87,7 @@ test-suite test
 
   default-extensions: OverloadedStrings
                     , TemplateHaskell
+                    , FlexibleInstances
 
   build-depends: base >=4.6 && < 5
                , QuickCheck
