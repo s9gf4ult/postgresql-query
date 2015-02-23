@@ -1,17 +1,4 @@
-module PGSimple.Types
-       ( -- * Usable fields
-         InetText(..)
-         -- * Connection pooling
-       , HasPostgres(..)
-       , TransactionSafe
-         -- * Query execution monad
-       , PgMonadT(..)
-       , runPgMonadT
-       , launchPG
-         -- * Entity model
-       , Entity(..)
-       , Ent
-       ) where
+module PGSimple.Types where
 
 
 import Prelude
@@ -37,17 +24,21 @@ import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
-import Data.Monoid ( Monoid )
-import Data.Proxy ( Proxy )
-import Data.String ( IsString )
+import Data.Monoid
+import Data.String
 import Data.Text ( Text )
-import Data.Typeable ( Typeable )
+import Data.Typeable
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
     ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
     ( ToField )
+import GHC.Generics
+import PGSimple.SqlBuilder
+    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
+import PGSimple.TH.SqlExp ( sqlExp )
 
+import qualified Data.List as L
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
 import qualified Control.Monad.Trans.Writer.Lazy as WL
@@ -78,6 +69,54 @@ instance FromField InetText where
       where
         result = return $ InetText
                  $ T.decodeUtf8 bs
+
+
+
+-- | Data representing dot-separated field name
+newtype FN =
+    FN [Text]
+    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+
+instance ToSqlBuilder FN where
+    toSqlBuilder (FN tt) =
+        mconcat
+        $ L.intersperse "."
+        $ map mkIdent tt
+
+instance IsString FN where
+    fromString s = FN [T.pack s]
+
+textFN :: Text -> FN
+textFN = FN . (:[])
+
+newtype MR =
+    MR
+    { unMR :: [(FN, SqlBuilder)]
+    } deriving (Monoid, Typeable, Generic)
+
+class ToMarkedRow a where
+    -- | generate list of pairs (field name, field value)
+    toMarkedRow :: a -> MR
+
+instance ToMarkedRow MR where
+    toMarkedRow = id
+
+-- | Turns marked row to query condition or SET clause ih UPDATE query
+-- e.g.
+--
+-- @
+-- > mrToBuilder " AND " $ MR [(FN ["field"], toField 10), (FN ["field2"], toField 20)]
+-- " \"field\" = 10  AND  \"field2\" = 20 "
+-- @
+mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
+            -> MR
+            -> SqlBuilder
+mrToBuilder b (MR l) = mconcat
+                       $ L.intersperse b
+                       $ map tobld l
+  where
+    tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
+
 
 
 class (MonadBase IO m) => HasPostgres m where

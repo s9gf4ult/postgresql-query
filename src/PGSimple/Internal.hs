@@ -1,99 +1,21 @@
-module PGSimple.Internal
-       (
-         FN(..)
-       , MR(..)
-       , ToMarkedRow(..)
-       , mrToBuilder
-       , mkIdent
-       , mkValue
-       , buildFields
-       , entityFields
-       , entityFieldsSimple
-       , selectEntity
-       , insertInto
-       , insertManyEntities
-       , insertEntity
-       , updateTable
-       ) where
+module PGSimple.Internal where
 
 
 import Prelude
 
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
-import Data.String
 import Data.Text ( Text )
-import Data.Typeable ( Typeable )
-import Database.PostgreSQL.Simple.ToField
-    ( ToField(..) )
 import Database.PostgreSQL.Simple.ToRow
     ( ToRow(..) )
-import Database.PostgreSQL.Simple.Types
-    ( Identifier(..) )
-import GHC.Generics ( Generic )
 import PGSimple.SqlBuilder
 import PGSimple.TH
 import PGSimple.Types
 
 import qualified Data.List as L
-import qualified Data.Text as T
 
 
-
--- | Shorthand function to convert identifier name to builder
-mkIdent :: Text -> SqlBuilder
-mkIdent t = mkValue $ Identifier t
-
--- | Shorthand function to convert single value to builder
-mkValue :: (ToField a) => a -> SqlBuilder
-mkValue a = [sqlExp|#{a}|]
-
--- | Data representing dot-separated field name
-newtype FN =
-    FN [Text]
-    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
-
-instance ToSqlBuilder FN where
-    toSqlBuilder (FN tt) =
-        mconcat
-        $ L.intersperse "."
-        $ map mkIdent tt
-
-instance IsString FN where
-    fromString s = FN [T.pack s]
-
-textFN :: Text -> FN
-textFN = FN . (:[])
-
-newtype MR =
-    MR
-    { unMR :: [(FN, SqlBuilder)]
-    } deriving (Monoid, Typeable, Generic)
-
-class ToMarkedRow a where
-    -- | generate list of pairs (field name, field value)
-    toMarkedRow :: a -> MR
-
-instance ToMarkedRow MR where
-    toMarkedRow = id
-
--- | Turns marked row to query condition or SET clause ih UPDATE query
--- e.g.
---
--- @
--- > mrToBuilder " AND " $ MR [(FN ["field"], toField 10), (FN ["field2"], toField 20)]
--- " \"field\" = 10  AND  \"field2\" = 20 "
--- @
-mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
-            -> MR
-            -> SqlBuilder
-mrToBuilder b (MR l) = mconcat
-                       $ L.intersperse b
-                       $ map tobld l
-  where
-    tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
-
--- | Fields of entity separated with coma.
+-- | Generate fields separated by comma.
 buildFields :: [FN] -> SqlBuilder
 buildFields flds = mconcat
                     $ L.intersperse ", "

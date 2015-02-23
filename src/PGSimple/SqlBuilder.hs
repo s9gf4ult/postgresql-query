@@ -9,10 +9,12 @@ import Control.Exception
 import Data.ByteString ( ByteString )
 import Data.Monoid
 import Data.String
+import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.ToField
-import Database.PostgreSQL.Simple.Types ( Query(..) )
+import Database.PostgreSQL.Simple.Types
+    ( Query(..), Identifier(..) )
 import GHC.Generics ( Generic )
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
@@ -65,6 +67,13 @@ instance ToSqlBuilder T.Text where
 instance ToSqlBuilder TL.Text where
     toSqlBuilder = sqlBuilderPure . BB.fromLazyText
 
+-- | Shorthand function to convert identifier name to builder
+mkIdent :: Text -> SqlBuilder
+mkIdent t = sqlBuilderFromField "mkident a" $ Identifier t
+
+-- | Shorthand function to convert single value to builder
+mkValue :: (ToField a) => a -> SqlBuilder
+mkValue a = sqlBuilderFromField "mkValue a" a
 
 sqlBuilderPure :: Builder -> SqlBuilder
 sqlBuilderPure b = SqlBuilder $ const $ pure b
