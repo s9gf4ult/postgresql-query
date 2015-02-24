@@ -31,11 +31,11 @@ newtype RopeList
 
 instance Arbitrary RopeList where
     arbitrary =
-        (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
+        resize 10 $ (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
 
 wordAlpha = map T.singleton
             $ ['A'..'Z'] ++ ['a'..'z']
-            ++ "!@$%&*()[];|\\{}<>="
+            ++ "!@$%&*()[];|{}<>="
 
 stringAlpha = wordAlpha ++ ["''", "\\'", " "]
 
@@ -55,34 +55,30 @@ instance Arbitrary Rope where
               , RLit <$> wordLit
               ]
       where
+        selems = resize 5 . listOf . elements
+        selems1 = resize 5 . listOf1 . elements
         stringLit = do
-            x <- listOf $ elements stringAlpha
+            x <- selems stringAlpha
             return $ "'" <> mconcat x <> "'"
 
         idLit = do
-            x <- listOf $ elements identAlpha
+            x <- selems identAlpha
             return $ "\"" <> mconcat x <> "\""
         ropeInt = do
-            x <- listOf $ elements intAlpha
+            x <- selems intAlpha
             return $ "#{" <> mconcat x <> "}"
         ropePaste = do
-            x <- listOf $ elements intAlpha
+            x <- selems1 intAlpha
             return $ "^{" <> mconcat x <> "}"
         comment = do
-            s <- listOf $ elements wordAlpha
+            s <- selems wordAlpha
             return $ "--" <> mconcat s
         bcomment = do
-            n <- listOf
-                 $ fmap mconcat
-                 $ listOf
-                 $ elements wordAlpha
-
+            n <- selems wordAlpha
             return $ "/*" <> mconcat n <> "*/"
         spaces = suchThat arbitrary (>= 1)
         wordLit = fmap mconcat
-                  $ listOf1
-                  $ elements
-                  $ wordAlpha
+                  $ selems1 wordAlpha
 
 
 flattenRope :: [Rope] -> Text

@@ -66,7 +66,7 @@ ropeParser = many1 $ choice
              , comment
              , bcomment
              , spaces
-             , word
+             , (RLit . T.singleton) <$> anyChar
              ]
   where
     eofErf e p =
@@ -101,8 +101,6 @@ ropeParser = many1 $ choice
         c <- takeWhile (`notElem` ['\r', '\n'])
         endOfLine <|> endOfInput
         return $ RComment $ b <> c
-    word = RLit <$> takeWhile1 isWord
-    isWord ch = not $ isSpace ch || elem ch ['#', '^', '/', '-', '\'', '"']
     spaces = (RSpaces . T.length) <$> takeWhile1 isSpace
 
     bcomment :: Parser Rope
