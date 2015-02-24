@@ -1,11 +1,17 @@
 module PGSimple.Config
        (
          PostgresConf(..)
-       , PGPool, createPGPool, pingPGPool
+       , PGPool(..)
+       , createPGPool
+       , pingPGPool
+       , withPGPool
+       , withPGPoolPrim
        ) where
 
 import Prelude
 
+import Control.Monad.Reader
+import Control.Monad.Trans.Control
 import Data.Aeson
 import Data.ByteString ( ByteString )
 import Data.Pool
@@ -13,7 +19,7 @@ import Data.Time
 
 import qualified Database.PostgreSQL.Simple as PG
 
-type PGPool = Pool PG.Connection
+newtype PGPool = PGPool (Pool PG.Connection)
 
 data PostgresConf = PostgresConf
     { pgConnStr  :: ByteString
@@ -53,12 +59,32 @@ instance FromJSON PostgresConf where
 
 createPGPool :: PostgresConf -> IO PGPool
 createPGPool PostgresConf{..} =
-    createPool
+    fmap PGPool
+    $ createPool
     (PG.connectPostgreSQL pgConnStr)
     PG.close
     pgPoolStripes
     pgPoolTimeout
     pgPoolSize
 
+
+withPGPool :: (MonadReader site m, MonadBaseControl IO m)
+           => (site -> PGPool)
+           -> (PG.Connection -> m a)
+           -> m a
+withPGPool extract action = do
+    (PGPool pool) <- asks extract
+    withResource pool action
+
+
+withPGPoolPrim :: (MonadBaseControl IO m)
+               => m PGPool
+               -> (PG.Connection -> m a)
+               -> m a
+withPGPoolPrim pget action = do
+    (PGPool pool) <- pget
+    withResource pool action
+
+
 pingPGPool :: PGPool -> IO ()
-pingPGPool pool = withResource pool $ const (return ())
+pingPGPool (PGPool pool) = withResource pool $ const (return ())
