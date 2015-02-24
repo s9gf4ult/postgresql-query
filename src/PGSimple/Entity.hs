@@ -1,6 +1,7 @@
-module PGSimple.Entity where
-
-import Prelude
+module PGSimple.Entity
+       ( Entity(..)
+       , Ent
+       ) where
 
 import Data.Proxy
 import Data.Text ( Text )
@@ -21,4 +22,5 @@ class Entity a where
 
 deriving instance Typeable EntityId
 
+-- | Entity with it's id
 type Ent a = (EntityId a, a)

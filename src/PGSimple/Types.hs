@@ -1,4 +1,18 @@
-module PGSimple.Types where
+module PGSimple.Types
+       ( -- * Query execution
+         HasPostgres(..)
+       , TransactionSafe
+       , PgMonadT(..)
+       , runPgMonadT
+       , launchPG
+        -- * Auxiliary types
+       , InetText(..)
+       , FN(..)
+       , textFN
+       , MarkedRow(..)
+       , mrToBuilder
+       , ToMarkedRow(..)
+       ) where
 
 import Prelude
 
@@ -45,6 +59,11 @@ import qualified Control.Monad.Trans.Writer.Strict as WS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
+{- $setup
+>>> import PGSimple.SqlBuilder
+>>> c <- connect defaultConnectInfo
+-}
+
 
 -- | type to put and get from db 'inet' and 'cidr' typed postgresql
 -- fields. This should be in postgresql-simple in fact.
@@ -71,7 +90,32 @@ instance FromField InetText where
 
 
 
--- | Data representing dot-separated field name
+{- | Dote separated field name. Each element in nested list will be
+properly quoted and separated by dot. It also have instance of
+'ToSqlBuilder' and 'IsString` so you can:
+
+>>> let a = "hello" :: FN
+>>> a
+FN ["hello"]
+
+>>> let b = "user.name" :: FN
+>>> b
+FN ["user","name"]
+
+>>> let n = "u.name" :: FN
+>>> runSqlBuilder c $ toSqlBuilder n
+"\"u\".\"name\""
+
+>>> ("user" <> "name") :: FN
+FN ["user","name"]
+
+>>> let a = "name" :: FN
+>>> let b = "email" :: FN
+>>> runSqlBuilder c [sqlExp|^{"u" <> a} = 'name', ^{"e" <> b} = 'email'|]
+"\"u\".\"name\" = 'name', \"e\".\"email\" = 'email'"
+
+-}
+
 newtype FN =
     FN [Text]
     deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
@@ -83,7 +127,26 @@ instance ToSqlBuilder FN where
         $ map mkIdent tt
 
 instance IsString FN where
-    fromString s = FN [T.pack s]
+    fromString s =
+        FN
+        $ map T.pack
+        $ filter (/= ".")
+        $ L.groupBy f s
+      where
+        f a b = not $ a == '.' || b == '.'
+
+{- | Single field to 'FN'
+
+>>> textFN "hello"
+FN ["hello"]
+
+>>> textFN "user.name"
+FN ["user.name"]
+
+Note that it does not split string to parts by point like instance of
+`IsString` does
+
+-}
 
 textFN :: Text -> FN
 textFN = FN . (:[])
@@ -115,13 +178,13 @@ class ToMarkedRow a where
 instance ToMarkedRow MarkedRow where
     toMarkedRow = id
 
--- | Turns marked row to query condition or SET clause ih UPDATE query
--- e.g.
---
--- @
--- > mrToBuilder " AND " $ MR [(FN ["field"], toField 10), (FN ["field2"], toField 20)]
--- " \"field\" = 10  AND  \"field2\" = 20 "
--- @
+{- | Turns marked row to query condition or SET clause ih UPDATE query e.g.
+
+>>> runSqlBuilder c $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
+" \"name\" = 'petr' AND \"email\" = 'foo@bar.com' "
+
+-}
+
 mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
             -> MarkedRow
             -> SqlBuilder
@@ -132,10 +195,10 @@ mrToBuilder b (MR l) = mconcat
     tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
 
 
-{- | Instances of this typeclass can acquire connection and pass it to
-computation. It can be reader of pool of connections or just reader of
-connection
--}
+-- | Instances of this typeclass can acquire connection and pass it to
+-- computation. It can be reader of pool of connections or just reader of
+-- connection
+
 class (MonadBase IO m) => HasPostgres m where
     withPGConnection :: (Connection -> m a) -> m a
 
@@ -216,6 +279,10 @@ instance (TransactionSafe m, Monoid w) => TransactionSafe (WL.WriterT w m)
 instance (TransactionSafe m, Monoid w) => TransactionSafe (WS.WriterT w m)
 
 
+-- | Reader of connection. Has instance of 'HasPostgres'. So if you have a
+-- connection you can run queries in this monad using 'runPgMonadT'. Or you
+-- can use this transformer to run sequence of queries using same
+-- connection with 'launchPG'.
 newtype PgMonadT m a =
     PgMonadT
     { unPgMonadT :: ReaderT Connection m a
@@ -288,16 +355,13 @@ instance TransactionSafe (PgMonadT m)
 runPgMonadT :: Connection -> PgMonadT m a -> m a
 runPgMonadT con (PgMonadT action) = runReaderT action con
 
--- | Use 'HasPostgres' instnace to run 'ReaderT Connection m' monad.
--- Usage example:
---
--- @
--- handler :: Handler [Int]
--- handler = launchPG $ do
---     mExecute "INSERT INTO tbl(val) values (?)" [10]
---     a <- mQuery_ "SELECT val FROM tbl"
---     return a
--- @
+{- | If your monad have instance of 'HasPostgres' you maybe dont need this
+function, unless your instance use 'withPGPool' which acquires connection
+from pool for each query. If you want to run sequence of queries using same
+connection you need this function
+
+-}
+
 launchPG :: (HasPostgres m)
          => PgMonadT m a
          -> m a
