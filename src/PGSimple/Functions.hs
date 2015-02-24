@@ -141,7 +141,7 @@ pgSelectEntities fpref q = do
   where
     toTuples ((Only eid) :. entity) = (eid, entity)
     p = Proxy :: Proxy a
-    selectQ = [sqlExp|^{selectEntity (entityFieldsSimple fpref) p} ^{q}|]
+    selectQ = [sqlExp|^{selectEntity (entityFieldsId fpref) p} ^{q}|]
 
 -- | Same as 'pgSelectEntities' but do not select id
 pgSelectJustEntities :: forall m a q. ( Functor m, HasPostgres m, MonadLogger m, Entity a
