@@ -1,8 +1,6 @@
 module PGSimple.Types where
 
-
 import Prelude
-
 
 import Control.Applicative
 import Control.Monad
@@ -36,7 +34,8 @@ import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import PGSimple.SqlBuilder
     ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
-import PGSimple.TH.SqlExp ( sqlExp )
+import PGSimple.TH.SqlExp
+    ( sqlExp )
 
 import qualified Data.List as L
 import qualified Control.Monad.Trans.State.Lazy as STL
