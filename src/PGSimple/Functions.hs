@@ -50,6 +50,8 @@ import Database.PostgreSQL.Simple.ToField
     ( ToField )
 import Database.PostgreSQL.Simple.Types
     ( Query(..), Only(..), (:.)(..) )
+import PGSimple.Entity
+    ( Entity(..), Ent )
 import PGSimple.Internal
 import PGSimple.SqlBuilder
 import PGSimple.TH

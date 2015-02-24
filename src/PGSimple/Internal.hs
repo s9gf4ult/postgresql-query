@@ -11,6 +11,8 @@ import Database.PostgreSQL.Simple.ToRow
 import PGSimple.SqlBuilder
 import PGSimple.TH
 import PGSimple.Types
+import PGSimple.Entity
+    ( Entity(..) )
 
 import qualified Data.List as L
 

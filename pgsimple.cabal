@@ -20,6 +20,7 @@ library
 
   exposed-modules: PGSimple
                  , PGSimple.Config
+                 , PGSimple.Entity
                  , PGSimple.Functions
                  , PGSimple.Internal
                  , PGSimple.SqlBuilder
