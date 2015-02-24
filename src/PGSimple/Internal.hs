@@ -23,6 +23,7 @@ import qualified Data.List as L
 
 {- $setup
 >>> import Database.PostgreSQL.Simple
+>>> import Database.PostgreSQL.Simple.ToField
 >>> import PGSimple.SqlBuilder
 >>> con <- connect defaultConnectInfo
 -}
@@ -140,7 +141,17 @@ insertInto tname b =
     in [sqlExp|INSERT INTO ^{mkIdent tname}
                (^{names}) VALUES (^{values})|]
 
--- | Convert entity to marked row to perform inserts and anything else
+{- | Convert entity instance to marked row to perform inserts updates
+and same stuff
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ mrToBuilder ", " $ entityToMR $ Foo "Enterprise" 610
+" \"name\" = 'Enterprise' ,  \"size\" = 610 "
+
+-}
+
 entityToMR :: forall a. (Entity a, ToRow a) => a -> MarkedRow
 entityToMR a =
     let p = Proxy :: Proxy a
@@ -149,25 +160,31 @@ entityToMR a =
     in MR $ zip names values
 
 
--- | Same as 'selectEntity' but generates INSERT query
+{- | Generates __INSERT INTO__ query for any instance of 'Entity' and 'ToRow'
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ insertEntity $ Foo "Enterprise" 910
+"INSERT INTO \"foo\" (\"name\", \"size\") VALUES ('Enterprise', 910)"
+
+-}
+
 insertEntity :: forall a. (Entity a, ToRow a) => a -> SqlBuilder
 insertEntity a =
     let p = Proxy :: Proxy a
         mr = entityToMR a
     in insertInto (tableName p) mr
 
+{- | Same as 'insertEntity' but generates query to insert many queries at same time
 
-updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
-            => Text              -- ^ table name
-            -> flds              -- ^ fields to update
-            -> q                 -- ^ condition
-            -> SqlBuilder
-updateTable tname flds q =
-    let mr = toMarkedRow flds
-        setFields = mrToBuilder ", " mr
-    in [sqlExp|UPDATE ^{mkIdent tname}
-               SET ^{setFields} ^{q}|]
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ insertManyEntities [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
+"INSERT INTO \"foo\" (\"name\",\"size\") VALUES ('meter',1),('table',2),('earth',151930000000)"
 
+-}
 
 insertManyEntities :: forall a. (Entity a, ToRow a) => [a] -> SqlBuilder
 insertManyEntities rows =
@@ -188,3 +205,22 @@ insertManyEntities rows =
                      $ map mkValue
                      $ toRow row
         in [sqlExp|(^{values})|]
+
+{- | generates __UPDATE__ query
+
+>>> let name = "%vip%"
+>>> runSqlBuilder con $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
+"UPDATE \"ships\" SET  \"size\" = 15  WHERE size > 15 AND name NOT LIKE '%vip%'"
+
+-}
+
+updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
+            => Text              -- ^ table name
+            -> flds              -- ^ fields to update
+            -> q                 -- ^ condition
+            -> SqlBuilder
+updateTable tname flds q =
+    let mr = toMarkedRow flds
+        setFields = mrToBuilder ", " mr
+    in [sqlExp|UPDATE ^{mkIdent tname}
+               SET ^{setFields} ^{q}|]

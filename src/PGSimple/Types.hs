@@ -178,14 +178,14 @@ class ToMarkedRow a where
 instance ToMarkedRow MarkedRow where
     toMarkedRow = id
 
-{- | Turns marked row to query condition or SET clause ih UPDATE query e.g.
+{- | Turns marked row to query intercalating it with other builder
 
 >>> runSqlBuilder c $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
 " \"name\" = 'petr' AND \"email\" = 'foo@bar.com' "
 
 -}
 
-mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
+mrToBuilder :: SqlBuilder        -- ^ Builder to intercalate with
             -> MarkedRow
             -> SqlBuilder
 mrToBuilder b (MR l) = mconcat
