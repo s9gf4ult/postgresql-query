@@ -1,4 +1,16 @@
-module PGSimple.Internal where
+module PGSimple.Internal
+       ( -- * Entity functions
+         entityFields
+       , entityFieldsId
+       , selectEntity
+       , insertEntity
+       , insertManyEntities
+       , entityToMR
+         -- * Low level generators
+       , buildFields
+       , updateTable
+       , insertInto
+       ) where
 
 
 import Prelude
@@ -38,6 +50,51 @@ buildFields :: [FN] -> SqlBuilder
 buildFields flds = mconcat
                     $ L.intersperse ", "
                     $ map toSqlBuilder flds
+
+{- | generates __UPDATE__ query
+
+>>> let name = "%vip%"
+>>> runSqlBuilder con $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
+"UPDATE \"ships\" SET  \"size\" = 15  WHERE size > 15 AND name NOT LIKE '%vip%'"
+
+-}
+
+updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
+            => Text              -- ^ table name
+            -> flds              -- ^ fields to update
+            -> q                 -- ^ condition
+            -> SqlBuilder
+updateTable tname flds q =
+    let mr = toMarkedRow flds
+        setFields = mrToBuilder ", " mr
+    in [sqlExp|UPDATE ^{mkIdent tname}
+               SET ^{setFields} ^{q}|]
+
+
+{- | Generate INSERT INTO query for entity
+
+>>> runSqlBuilder con $ insertInto "foo" $ MR [("name", mkValue "vovka"), ("hobby", mkValue "president")]
+"INSERT INTO \"foo\" (\"name\", \"hobby\") VALUES ('vovka', 'president')"
+
+-}
+
+insertInto :: (ToMarkedRow b)
+           => Text               -- ^ table name
+           -> b                  -- ^ list of pairs (name, value) to insert into
+           -> SqlBuilder
+insertInto tname b =
+    let mr = toMarkedRow b
+        names = mconcat
+                $ L.intersperse ", "
+                $ map (toSqlBuilder . fst)
+                $ unMR mr
+        values = mconcat
+                 $ L.intersperse ", "
+                 $ map snd
+                 $ unMR mr
+    in [sqlExp|INSERT INTO ^{mkIdent tname}
+               (^{names}) VALUES (^{values})|]
+
 
 {- | Build entity fields
 
@@ -116,31 +173,6 @@ selectEntity :: (Entity a)
 selectEntity bld p =
     [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
 
-
-{- | Generate INSERT INTO query for entity
-
->>> runSqlBuilder con $ insertInto "foo" $ MR [("name", mkValue "vovka"), ("hobby", mkValue "president")]
-"INSERT INTO \"foo\" (\"name\", \"hobby\") VALUES ('vovka', 'president')"
-
--}
-
-insertInto :: (ToMarkedRow b)
-           => Text               -- ^ table name
-           -> b                  -- ^ list of pairs (name, value) to insert into
-           -> SqlBuilder
-insertInto tname b =
-    let mr = toMarkedRow b
-        names = mconcat
-                $ L.intersperse ", "
-                $ map (toSqlBuilder . fst)
-                $ unMR mr
-        values = mconcat
-                 $ L.intersperse ", "
-                 $ map snd
-                 $ unMR mr
-    in [sqlExp|INSERT INTO ^{mkIdent tname}
-               (^{names}) VALUES (^{values})|]
-
 {- | Convert entity instance to marked row to perform inserts updates
 and same stuff
 
@@ -205,22 +237,3 @@ insertManyEntities rows =
                      $ map mkValue
                      $ toRow row
         in [sqlExp|(^{values})|]
-
-{- | generates __UPDATE__ query
-
->>> let name = "%vip%"
->>> runSqlBuilder con $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
-"UPDATE \"ships\" SET  \"size\" = 15  WHERE size > 15 AND name NOT LIKE '%vip%'"
-
--}
-
-updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
-            => Text              -- ^ table name
-            -> flds              -- ^ fields to update
-            -> q                 -- ^ condition
-            -> SqlBuilder
-updateTable tname flds q =
-    let mr = toMarkedRow flds
-        setFields = mrToBuilder ", " mr
-    in [sqlExp|UPDATE ^{mkIdent tname}
-               SET ^{setFields} ^{q}|]
