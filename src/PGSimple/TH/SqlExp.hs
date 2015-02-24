@@ -30,11 +30,41 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import PGSimple.SqlBuilder
+    ( sqlBuilderFromField,
+      ToSqlBuilder(..) )
 
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
+{- $setup
+>>> import Database.PostgreSQL.Simple
+>>> import PGSimple.SqlBuilder
+>>> import qualified Data.List as L
+>>> c <- connect defaultConnectInfo
+-}
+
+{- | Maybe the main feature of all library. Quasiquoter which builds
+'SqlBuilder' from string query. Removes line comments and block
+comments (even nested) and sequences of spaces. Correctly works
+handles string literals and quoted identifiers. Here is examples of usage
+
+>>> let name = "name"
+>>> let val = "some 'value'"
+>>> runSqlBuilder c [sqlExp|SELECT * FROM tbl WHERE ^{mkIdent name} = #{val}|]
+"SELECT * FROM tbl WHERE \"name\" = 'some ''value'''"
+
+And more comples example:
+
+>>> let name = Just "name"
+>>> let size = Just 10
+>>> let active = Nothing :: Maybe Bool
+>>> let condlist = catMaybes [ fmap (\a -> [sqlExp|name = #{a}|]) name, fmap (\a -> [sqlExp|size = #{a}|]) size, fmap (\a -> [sqlExp|active = #{a}|]) active]
+>>> let cond = if L.null condlist then mempty else [sqlExp| WHERE ^{mconcat $ L.intersperse " AND " $ condlist} |]
+>>> runSqlBuilder c [sqlExp|SELECT *   FROM tbl ^{cond} -- line comment|]
+"SELECT * FROM tbl  WHERE name = 'name' AND size = 10  "
+
+-}
 
 sqlExp :: QuasiQuoter
 sqlExp = QuasiQuoter
@@ -44,6 +74,7 @@ sqlExp = QuasiQuoter
          , quoteDec  = error "sqlInt used in declaration"
          }
 
+-- | Internal type. Result of parsing sql string
 data Rope
     = RLit Text            -- ^ Part of raw sql
     | RComment Text        -- ^ Sql comment
@@ -173,6 +204,9 @@ buildQ r = do
     fromRope (RComment c) = T.encodeUtf8 c
     fromRope (RSpaces _) = " "
 
+-- | Removes sequential occurencies of 'RLit' constructors. Also
+-- removes commentaries and squash sequences of spaces to single space
+-- symbol
 squashRope :: [Rope] -> [Rope]
 squashRope = go . catMaybes . map cleanRope
   where
@@ -184,7 +218,7 @@ squashRope = go . catMaybes . map cleanRope
     go (x:xs) = x:(go xs)
     go [] = []
 
--- | Build expression of type SqlBuilder from SQL query with interpolation
+-- | Build expression of type 'SqlBuilder' from SQL query with interpolation
 sqlQExp :: String
         -> Q Exp                 -- ^ Expression of type 'SqlBuilder'
 sqlQExp s = do
@@ -196,7 +230,15 @@ sqlQExp s = do
             $ map (buildBuilder q) rope
     [e| ( mconcat $(pure $ ListE exps) ) |]
 
--- | Embed sql template and perform interpolation
+{- | Embed sql template and perform interpolation
+
+@
+let name = "name"
+    foo = "bar"
+    query = $(sqlExpEmbed "sql/foo/bar.sql") -- using 'foo' and 'bar' inside
+@
+-}
+
 sqlExpEmbed :: String            -- ^ file path
             -> Q Exp             -- ^ Expression of type 'SqlBuilder'
 sqlExpEmbed fpath = do
@@ -204,8 +246,22 @@ sqlExpEmbed fpath = do
     s <- runIO $ T.unpack . T.decodeUtf8 <$> B.readFile fpath
     sqlQExp s
 
--- | Just like 'sqlExpEmbed' but uses pattern instead of file name. __sqlExpFile
--- "dir/template"__ is just the same as __sqlExpEmbed "sql/dir/template.sql"__
+{- | Just like 'sqlExpEmbed' but uses pattern instead of file
+name. So, code
+
+@
+let query = $(sqlExpFile "foo/bar")
+@
+
+is just the same as
+
+@
+let query = $(sqlExpEmbed "sql/foo/bar.sql")
+@
+
+This function inspired by Yesod's 'widgetFile'
+-}
+
 sqlExpFile :: String
            -> Q Exp
 sqlExpFile ptr = sqlExpEmbed $ "sql/" <> ptr <> ".sql"
