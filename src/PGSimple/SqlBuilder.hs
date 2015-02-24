@@ -1,4 +1,16 @@
-module PGSimple.SqlBuilder where
+module PGSimple.SqlBuilder
+       ( -- * Types
+         SqlBuilder(..)
+       , ToSqlBuilder(..)
+       , Qp(..)
+         -- * SqlBuilder helpers
+       , emptyB
+       , runSqlBuilder
+       , mkIdent
+       , mkValue
+       , sqlBuilderPure
+       , sqlBuilderFromField
+       ) where
 
 import Prelude
 
@@ -24,6 +36,11 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 
+{- $setup
+>>> c <- connect defaultConnectInfo
+-}
+
+-- | Things which always can be transformed to 'SqlBuilder'
 class ToSqlBuilder a where
     toSqlBuilder :: a -> SqlBuilder
 
@@ -34,14 +51,26 @@ instance ToSqlBuilder Qp where
     toSqlBuilder (Qp q row) = SqlBuilder $ \c ->
         BB.fromByteString <$> formatQuery c q row
 
+
+-- | Builder wich can be effectively concatenated. Requires 'Connection'
+-- inside for string quoting implemented in __libpq__
 newtype SqlBuilder =
     SqlBuilder
     { sqlBuild :: Connection -> IO Builder }
     deriving (Typeable, Generic)
 
--- | short hand function for typecheck
+-- | Typed synonym of 'mempty'
 emptyB :: SqlBuilder
 emptyB = mempty
+
+{- | Performs parameters interpolation and return ready to execute query
+
+>>> let val = 10
+>>> let name = "field"
+>>> runSqlBuilder c $ "SELECT * FROM tbl WHERE " <> mkIdent name <> " = " <> mkValue val
+"SELECT * FROM tbl WHERE \"field\" = 10"
+
+-}
 
 runSqlBuilder :: Connection -> SqlBuilder -> IO Query
 runSqlBuilder con (SqlBuilder bld) =
@@ -67,14 +96,29 @@ instance ToSqlBuilder T.Text where
 instance ToSqlBuilder TL.Text where
     toSqlBuilder = sqlBuilderPure . BB.fromLazyText
 
--- | Shorthand function to convert identifier name to builder
+{- | Shorthand function to convert identifier name to builder
+
+>>> runSqlBuilder c $ mkIdent "simple\"ident"
+"\"simple\"\"ident\""
+
+Note correct string quoting made by __libpq__
+-}
+
 mkIdent :: Text -> SqlBuilder
 mkIdent t = sqlBuilderFromField "mkident a" $ Identifier t
 
--- | Shorthand function to convert single value to builder
+{- | Shorthand function to convert single value to builder
+
+>>> runSqlBuilder c $ mkValue "some ' value"
+"'some '' value'"
+
+Note correct string quoting
+-}
+
 mkValue :: (ToField a) => a -> SqlBuilder
 mkValue a = sqlBuilderFromField "mkValue a" a
 
+-- | Lift pure bytestring builder to 'SqlBuilder'
 sqlBuilderPure :: Builder -> SqlBuilder
 sqlBuilderPure b = SqlBuilder $ const $ pure b
 
@@ -97,7 +141,7 @@ throwFormatError q msg = throw
   where
     utf8ToString = T.unpack . T.decodeUtf8
 
-
+-- | for internal usage
 quoteOrThrow :: Query -> Either ByteString ByteString -> Builder
 quoteOrThrow q = either (throwFormatError q) (inQuotes . BB.fromByteString)
 

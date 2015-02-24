@@ -89,16 +89,31 @@ instance IsString FN where
 textFN :: Text -> FN
 textFN = FN . (:[])
 
-newtype MR =
+{- | Marked row is list of pairs of field name and some sql
+expression. Used to generate queries like:
+
+@
+name = 'name' AND size = 10 AND length = 20
+@
+
+or
+
+@
+UPDATE tbl SET name = 'name', size = 10, lenght = 20
+@
+
+-}
+
+newtype MarkedRow =
     MR
     { unMR :: [(FN, SqlBuilder)]
     } deriving (Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
     -- | generate list of pairs (field name, field value)
-    toMarkedRow :: a -> MR
+    toMarkedRow :: a -> MarkedRow
 
-instance ToMarkedRow MR where
+instance ToMarkedRow MarkedRow where
     toMarkedRow = id
 
 -- | Turns marked row to query condition or SET clause ih UPDATE query
@@ -109,7 +124,7 @@ instance ToMarkedRow MR where
 -- " \"field\" = 10  AND  \"field2\" = 20 "
 -- @
 mrToBuilder :: SqlBuilder        -- ^ Builder to intersperse with
-            -> MR
+            -> MarkedRow
             -> SqlBuilder
 mrToBuilder b (MR l) = mconcat
                        $ L.intersperse b
@@ -118,7 +133,10 @@ mrToBuilder b (MR l) = mconcat
     tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
 
 
-
+{- | Instances of this typeclass can acquire connection and pass it to
+computation. It can be reader of pool of connections or just reader of
+connection
+-}
 class (MonadBase IO m) => HasPostgres m where
     withPGConnection :: (Connection -> m a) -> m a
 

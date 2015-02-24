@@ -96,7 +96,7 @@ insertInto tname b =
                (^{names}) VALUES (^{values})|]
 
 -- | Convert entity to marked row to perform inserts and anything else
-entityToMR :: forall a. (Entity a, ToRow a) => a -> MR
+entityToMR :: forall a. (Entity a, ToRow a) => a -> MarkedRow
 entityToMR a =
     let p = Proxy :: Proxy a
         names = map textFN $ fieldNames p

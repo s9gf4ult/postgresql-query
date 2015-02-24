@@ -19,6 +19,7 @@ import Data.Time
 
 import qualified Database.PostgreSQL.Simple as PG
 
+-- | Connection pool. Must be created from settings using 'createPGPool'
 newtype PGPool = PGPool (Pool PG.Connection)
 
 data PostgresConf = PostgresConf
@@ -68,6 +69,14 @@ createPGPool PostgresConf{..} =
     pgPoolSize
 
 
+{- | Combinator for simple implementation of 'withPGConnection' method.
+typical usage is:
+
+@
+instance HasPostgres (HandlerT App IO) where
+    withPGConnection = withPGPool appPGPool
+@
+-}
 withPGPool :: (MonadReader site m, MonadBaseControl IO m)
            => (site -> PGPool)
            -> (PG.Connection -> m a)
@@ -76,7 +85,13 @@ withPGPool extract action = do
     (PGPool pool) <- asks extract
     withResource pool action
 
+{- | Another combinator to implement 'withPGConnection'
 
+@
+instance HasPostgres (OurMonadT IO) where
+    withPGConnection = withPGPoolPrim $ getPGPool \<$\> getSomeThing
+@
+-}
 withPGPoolPrim :: (MonadBaseControl IO m)
                => m PGPool
                -> (PG.Connection -> m a)
@@ -85,6 +100,7 @@ withPGPoolPrim pget action = do
     (PGPool pool) <- pget
     withResource pool action
 
-
+-- | Force to create at least one connection in pool. Usefull to check
+-- connection settings at program start time
 pingPGPool :: PGPool -> IO ()
 pingPGPool (PGPool pool) = withResource pool $ const (return ())

@@ -21,7 +21,7 @@ module PGSimple.Functions
          -- * Counting entities
        , pgSelectCount
        , Qp(..)
-       , MR(..)
+       , MarkedRow(..)
        , ToMarkedRow(..)
        , mkIdent
        , mkValue
