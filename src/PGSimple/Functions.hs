@@ -1,30 +1,24 @@
 module PGSimple.Functions
-       ( -- * One-query functions for 'HasPostgres' instances
-         pgWithTransaction
-       , pgWithSavepoint
-       , pgQuery
+       ( -- * Raw query execution
+         pgQuery
        , pgExecute
-         -- * Inserting entities
+       , pgQueryEntities
+         -- * Transactions
+       , pgWithTransaction
+       , pgWithSavepoint
+         -- * Work with entities
        , pgInsertEntity
        , pgInsertManyEntities
        , pgInsertManyEntitiesId
-         -- * Selecting entities
        , pgSelectEntities
-       , pgSelectEntitiesBy
        , pgSelectJustEntities
+       , pgSelectEntitiesBy
        , pgGetEntity
        , pgGetEntityBy
-         -- * Deleting entities
        , pgDeleteEntity
-         -- * Updating entities
        , pgUpdateEntity
-         -- * Counting entities
        , pgSelectCount
-       , Qp(..)
-       , MarkedRow(..)
-       , ToMarkedRow(..)
-       , mkIdent
-       , mkValue
+         -- * Auxiliary functions
        , pgRepsertRow
        ) where
 
@@ -53,9 +47,16 @@ import Database.PostgreSQL.Simple.Types
 import PGSimple.Entity
     ( Entity(..), Ent )
 import PGSimple.Internal
+    ( insertEntity, selectEntity, entityFieldsId,
+      entityFields, selectEntitiesBy, insertManyEntities,
+      updateTable, insertInto )
 import PGSimple.SqlBuilder
+    ( ToSqlBuilder(..), runSqlBuilder, mkIdent  )
 import PGSimple.TH
+    ( sqlExp )
 import PGSimple.Types
+    ( FN, HasPostgres(..), TransactionSafe,
+      ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 
 import qualified Data.List as L
 import qualified Data.Text.Encoding as T
