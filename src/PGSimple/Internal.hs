@@ -16,11 +16,14 @@ module PGSimple.Internal
 
 import Prelude
 
+import Data.List.NonEmpty ( NonEmpty )
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
 import Database.PostgreSQL.Simple.ToRow
     ( ToRow(..) )
+import PGSimple.Entity
+    ( Entity(..) )
 import PGSimple.SqlBuilder
     ( SqlBuilder, ToSqlBuilder(..),
       mkIdent, mkValue )
@@ -29,9 +32,8 @@ import PGSimple.TH
 import PGSimple.Types
     ( FN(..), textFN, MarkedRow(..),
       ToMarkedRow(..), mrToBuilder )
-import PGSimple.Entity
-    ( Entity(..) )
 
+import qualified Data.List.NonEmpty as NL
 import qualified Data.List as L
 
 {- $setup
@@ -245,12 +247,12 @@ insertEntity a =
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
 >>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
->>> runSqlBuilder con $ insertManyEntities [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
+>>> runSqlBuilder con $ insertManyEntities $ NL.fromList [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
 "INSERT INTO \"foo\" (\"name\",\"size\") VALUES ('meter',1),('table',2),('earth',151930000000)"
 
 -}
 
-insertManyEntities :: forall a. (Entity a, ToRow a) => [a] -> SqlBuilder
+insertManyEntities :: forall a. (Entity a, ToRow a) => NonEmpty a -> SqlBuilder
 insertManyEntities rows =
     let p = Proxy :: Proxy a
         names = mconcat
@@ -259,7 +261,9 @@ insertManyEntities rows =
                 $ fieldNames p
         values = mconcat
                  $ L.intersperse ","
-                 $ map rValue rows
+                 $ map rValue
+                 $ NL.toList rows
+
     in [sqlExp|INSERT INTO ^{mkIdent $ tableName p}
                (^{names}) VALUES ^{values}|]
   where

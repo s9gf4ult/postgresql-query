@@ -1,9 +1,11 @@
 module PGSimple
        ( -- * Common usage modules
-         module PGSimple.Types
+         module PGSimple.Entity
        , module PGSimple.Functions
-       , module PGSimple.TH
        , module PGSimple.SqlBuilder
+       , module PGSimple.TH
+       , module PGSimple.Types
+
            -- * Some re-exports from postgresql-simple
        , Connection, connect, defaultConnectInfo, connectPostgreSQL
        , ConnectInfo(..) , ToField(..), ToRow(..), FromField(..)
@@ -27,10 +29,13 @@ import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types
 import Language.Haskell.TH.Quote ( QuasiQuoter )
 
-import PGSimple.Types
+import PGSimple.Entity
 import PGSimple.Functions
-import PGSimple.TH
 import PGSimple.SqlBuilder
+import PGSimple.TH
+import PGSimple.Types
 
 sqlQQ :: QuasiQuoter
 sqlQQ = sql
+
+{-# DEPRECATED sqlQQ "Use 'sqlExp' instead" #-}

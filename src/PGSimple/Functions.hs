@@ -59,6 +59,7 @@ import PGSimple.Types
       ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NL
 import qualified Data.Text.Encoding as T
 
 -- | Execute all queries inside one transaction. Rollback transaction on exceptions
@@ -241,8 +242,10 @@ pgInsertManyEntitiesId :: forall a m. ( Entity a, HasPostgres m, MonadLogger m
                                 , ToRow a, FromField (EntityId a))
                        => [a]
                        -> m [EntityId a]
-pgInsertManyEntitiesId ents =
-    let q = [sqlExp|^{insertManyEntities ents} RETURNING id|]
+pgInsertManyEntitiesId [] = return []
+pgInsertManyEntitiesId ents' =
+    let ents = NL.fromList ents'
+        q = [sqlExp|^{insertManyEntities ents} RETURNING id|]
     in map fromOnly <$> pgQuery q
 
 -- | Insert many entities without returning list of id like
@@ -250,8 +253,10 @@ pgInsertManyEntitiesId ents =
 pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a)
                      => [a]
                      -> m ()
-pgInsertManyEntities ents =
-    void $ pgExecute $ insertManyEntities ents
+pgInsertManyEntities [] = return ()
+pgInsertManyEntities ents' =
+    let ents = NL.fromList ents'
+    in void $ pgExecute $ insertManyEntities ents
 
 
 {- | Delete entity.
