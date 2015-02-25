@@ -3,6 +3,7 @@ module PGSimple.Internal
          entityFields
        , entityFieldsId
        , selectEntity
+       , selectEntitiesBy
        , insertEntity
        , insertManyEntities
        , entityToMR
@@ -118,10 +119,10 @@ insertInto tname b =
 -}
 
 entityFields :: (Entity a)
-             => ([FN] -> [FN])    -- ^ modify list of fields
+             => ([FN] -> [FN])    -- ^ modify list of fields. Applied second
              -> (FN -> FN)        -- ^ modify each field name,
                                 -- e.g. prepend each field with
-                                -- prefix, like ("t":). Applied first
+                                -- prefix, like ("t"<>). Applied first
              -> Proxy a
              -> SqlBuilder
 entityFields xpref fpref p =
@@ -172,6 +173,37 @@ selectEntity :: (Entity a)
              -> SqlBuilder
 selectEntity bld p =
     [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
+
+
+{- | Generates SELECT FROM WHERE query with most used conditions
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR []
+"SELECT \"name\", \"size\" FROM \"foo\""
+
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname")]
+"SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' "
+
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname"), ("size", mkValue 10)]
+"SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' AND \"size\" = 10 "
+
+-}
+
+selectEntitiesBy :: (Entity a, ToMarkedRow b)
+                 => ([FN] -> [FN])
+                 -> Proxy a
+                 -> b
+                 -> SqlBuilder
+selectEntitiesBy xpref p b =
+    let mr = toMarkedRow b
+        cond = if L.null $ unMR mr
+               then mempty
+               else [sqlExp| WHERE ^{mrToBuilder "AND" mr}|]
+        q = selectEntity (entityFields xpref id) p
+    in q <> cond
+
+
 
 {- | Convert entity instance to marked row to perform inserts updates
 and same stuff
