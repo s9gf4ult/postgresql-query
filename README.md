@@ -92,6 +92,24 @@ Quasiquote `sqlExp` has two way of interpolation:
 * `^{exp}` - pastes inside query arbitrary value which type has
   instance of `ToSqlBuilder` typeclass.
 
-`sqlExp` quasiquote returns `SqlBuilder` which has a `Monoid` instance
+`sqlExp` returns `SqlBuilder` which has a `Monoid` instance
 and made for effective concatination (bytestring builder works
 inside).
+
+This quasiquote correctly handles string literals and quoted
+identifiers. It also removes line and block (even nested) sql comments
+from resulting query as well as sequences of space characters. You are
+free to write queries like
+
+```sql
+WHERE name SIMILAR TO '\^{2,3}' -- line comment #{ololo}
+```
+
+or even
+
+```sql
+WHERE "#{strange}identifier" SIMILAR TO '#{1,10}' /*nested/*^{block}*/comment*/
+```
+
+`sqlExp` will remove all comments and will not interpolate inside
+string literals or quoted identifiers at all.
