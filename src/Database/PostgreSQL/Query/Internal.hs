@@ -1,4 +1,4 @@
-module PGSimple.Internal
+module Database.PostgreSQL.Query.Internal
        ( -- * Entity functions
          entityFields
        , entityFieldsId
@@ -20,18 +20,18 @@ import Data.List.NonEmpty ( NonEmpty )
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
-import Database.PostgreSQL.Simple.ToRow
-    ( ToRow(..) )
-import PGSimple.Entity
+import Database.PostgreSQL.Query.Entity
     ( Entity(..) )
-import PGSimple.SqlBuilder
+import Database.PostgreSQL.Query.SqlBuilder
     ( SqlBuilder, ToSqlBuilder(..),
       mkIdent, mkValue )
-import PGSimple.TH
+import Database.PostgreSQL.Query.TH
     ( sqlExp )
-import PGSimple.Types
+import Database.PostgreSQL.Query.Types
     ( FN(..), textFN, MarkedRow(..),
       ToMarkedRow(..), mrToBuilder )
+import Database.PostgreSQL.Simple.ToRow
+    ( ToRow(..) )
 
 import qualified Data.List.NonEmpty as NL
 import qualified Data.List as L

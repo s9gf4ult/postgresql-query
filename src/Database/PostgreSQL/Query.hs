@@ -1,10 +1,10 @@
-module PGSimple
+module Database.PostgreSQL.Query
        ( -- * Common usage modules
-         module PGSimple.Entity
-       , module PGSimple.Functions
-       , module PGSimple.SqlBuilder
-       , module PGSimple.TH
-       , module PGSimple.Types
+         module Database.PostgreSQL.Query.Entity
+       , module Database.PostgreSQL.Query.Functions
+       , module Database.PostgreSQL.Query.SqlBuilder
+       , module Database.PostgreSQL.Query.TH
+       , module Database.PostgreSQL.Query.Types
 
            -- * Some re-exports from postgresql-simple
        , Connection, connect, defaultConnectInfo, connectPostgreSQL
@@ -29,11 +29,11 @@ import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types
 import Language.Haskell.TH.Quote ( QuasiQuoter )
 
-import PGSimple.Entity
-import PGSimple.Functions
-import PGSimple.SqlBuilder
-import PGSimple.TH
-import PGSimple.Types
+import Database.PostgreSQL.Query.Entity
+import Database.PostgreSQL.Query.Functions
+import Database.PostgreSQL.Query.SqlBuilder
+import Database.PostgreSQL.Query.TH
+import Database.PostgreSQL.Query.Types
 
 sqlQQ :: QuasiQuoter
 sqlQQ = sql

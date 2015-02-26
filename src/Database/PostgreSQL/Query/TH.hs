@@ -1,4 +1,4 @@
-module PGSimple.TH
+module Database.PostgreSQL.Query.TH
        ( -- * Deriving instances
          deriveFromRow
        , deriveToRow
@@ -19,7 +19,7 @@ import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
-import PGSimple.TH.SqlExp
+import Database.PostgreSQL.Query.TH.SqlExp
 
 
 cName :: (Monad m) => Con -> m Name

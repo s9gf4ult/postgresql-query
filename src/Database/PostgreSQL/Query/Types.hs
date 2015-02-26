@@ -1,4 +1,4 @@
-module PGSimple.Types
+module Database.PostgreSQL.Query.Types
        ( -- * Query execution
          HasPostgres(..)
        , TransactionSafe
@@ -40,16 +40,16 @@ import Data.Monoid
 import Data.String
 import Data.Text ( Text )
 import Data.Typeable
+import Database.PostgreSQL.Query.SqlBuilder
+    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
+import Database.PostgreSQL.Query.TH.SqlExp
+    ( sqlExp )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
     ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
     ( ToField )
 import GHC.Generics
-import PGSimple.SqlBuilder
-    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
-import PGSimple.TH.SqlExp
-    ( sqlExp )
 
 import qualified Data.List as L
 import qualified Control.Monad.Trans.State.Lazy as STL
