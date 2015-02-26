@@ -1,321 +1,275 @@
 module PGSimple.Internal
-       ( -- * Query generation helpers
-         dquo
-       , qIntercalate
-       , concFields
-       , selectFields
+       ( -- * Entity functions
+         entityFields
+       , entityFieldsId
        , selectEntity
+       , selectEntitiesBy
        , insertEntity
-         -- * Generalized functions for CRUDing entities
-       , someInsertEntity
-       , someSelectEntities
-       , someSelectJustEntities
-       , someGetEntity
-       , someGetEntityBy
-       , someInsertManyEntities
-       , someDeleteEntity
-       , someUpdateEntity
-       , someSelectCount
+       , insertManyEntities
+       , entityToMR
+         -- * Low level generators
+       , buildFields
+       , updateTable
+       , insertInto
        ) where
 
 
 import Prelude
 
-import Control.Applicative ( (<$>) )
-import Control.Monad ( unless )
-import Data.Maybe ( listToMaybe )
-import Data.Monoid ( Monoid(mconcat), (<>) )
+import Data.List.NonEmpty ( NonEmpty )
+import Data.Monoid
 import Data.Proxy ( Proxy(..) )
-import Data.Typeable ( Typeable, typeRep )
-import Database.PostgreSQL.Simple as PG
-    ( Query, Only(Only), type (:.)(..), ToRow, FromRow )
-import Database.PostgreSQL.Simple.FromField ( FromField )
-import Database.PostgreSQL.Simple.ToField
-    ( Action, ToField(..) )
-import Database.PostgreSQL.Simple.Types
-    ( Query(..) )
+import Data.Text ( Text )
+import Database.PostgreSQL.Simple.ToRow
+    ( ToRow(..) )
+import PGSimple.Entity
+    ( Entity(..) )
+import PGSimple.SqlBuilder
+    ( SqlBuilder, ToSqlBuilder(..),
+      mkIdent, mkValue )
+import PGSimple.TH
+    ( sqlExp )
 import PGSimple.Types
+    ( FN(..), textFN, MarkedRow(..),
+      ToMarkedRow(..), mrToBuilder )
 
-import qualified Data.ByteString as BS
-import qualified Data.Set as S
+import qualified Data.List.NonEmpty as NL
+import qualified Data.List as L
 
-
-
--- | enclose field/table identifier with double quotes. It does not check if
--- query string is already quoted
---
--- @
--- λ> dquo "name"
--- "\\"name\\""
--- @
-dquo :: Query -> Query
-dquo a = "\"" <> a <> "\""
-
--- | Intercalate query string like 'BS.intercalate' does
---
--- @
--- λ> qIntercalate "," ["one", "two", "three"]
--- "one,two,three"
--- @
-qIntercalate :: Query -> [Query] -> Query
-qIntercalate (Query q) qs =
-    Query
-    $ BS.intercalate q
-    $ map fromQuery qs
+{- $setup
+>>> import Database.PostgreSQL.Simple
+>>> import Database.PostgreSQL.Simple.ToField
+>>> import PGSimple.SqlBuilder
+>>> con <- connect defaultConnectInfo
+-}
 
 
+{-| Generates comma separated list of field names
+
+>>> runSqlBuilder con $ buildFields ["u" <> "name", "u" <> "phone", "e" <> "email"]
+"\"u\".\"name\", \"u\".\"phone\", \"e\".\"email\""
+-}
+buildFields :: [FN] -> SqlBuilder
+buildFields flds = mconcat
+                    $ L.intersperse ", "
+                    $ map toSqlBuilder flds
+
+{- | generates __UPDATE__ query
+
+>>> let name = "%vip%"
+>>> runSqlBuilder con $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
+"UPDATE \"ships\" SET  \"size\" = 15  WHERE size > 15 AND name NOT LIKE '%vip%'"
+
+-}
+
+updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
+            => Text              -- ^ table name
+            -> flds              -- ^ fields to update
+            -> q                 -- ^ condition
+            -> SqlBuilder
+updateTable tname flds q =
+    let mr = toMarkedRow flds
+        setFields = mrToBuilder ", " mr
+    in [sqlExp|UPDATE ^{mkIdent tname}
+               SET ^{setFields} ^{q}|]
 
 
--- | Generate comma separated double-quoted field names
---
--- @
--- λ> concFields Nothing ["fld", "fld2"]
--- "\\"fld\\", \\"fld2\\""
--- λ> concFields (Just "table") ["fld", "fld2"]
--- "\\"table\\".\\"fld\\", \\"table\\".\\"fld2\\""
--- @
-concFields :: (Maybe Query)   -- ^ prefix for each field (i.e. when you use join)
-           -> [Query]         -- ^ to get field names from
-           -> Query
-concFields pref qs = qIntercalate ", "
-                     $ map (maybe id qPrepend pref)
-                     $ map dquo qs
-  where
-    qPrepend p val = (dquo p) <> "." <> val
+{- | Generate INSERT INTO query for entity
 
--- | Auxiliary function. Generate select query
---
--- @
--- λ> selectFields False Nothing ["field", "field2"] "table"
--- "SELECT \\"field\\", \\"field2\\" FROM table"
--- λ> selectFields True Nothing ["field", "field2"] "table"
--- "SELECT DISTINCT \\"field\\", \\"field2\\" FROM table"
--- λ> selectFields False (Just "table") ["field", "field2"] "table"
--- "SELECT \\"table\\".\\"field\\", \\"table\\".\\"field2\\" FROM table"
--- λ> selectFields True (Just "table") ["field", "field2"] "table"
--- "SELECT DISTINCT \\"table\\".\\"field\\", \\"table\\".\\"field2\\" FROM table"
--- @
-selectFields :: Bool             -- ^ distinct ?
-             -> (Maybe Query)    -- ^ namespace for field names
-             -> [Query]          -- ^ fields
-             -> Query            -- ^ table name
-             -> Query
-selectFields distinct mpre flds tbl =
-    mconcat
-    [ "SELECT "
-    , if distinct then "DISTINCT " else ""
-    , concFields mpre flds
-    , " FROM "
-    , tbl ]
+>>> runSqlBuilder con $ insertInto "foo" $ MR [("name", mkValue "vovka"), ("hobby", mkValue "president")]
+"INSERT INTO \"foo\" (\"name\", \"hobby\") VALUES ('vovka', 'president')"
 
--- | Generate SELECT query string
---
--- @
--- data Tbl = Tbl Int Int
---
--- instance Entity Tbl where
---     type EntityId Tbl = Int
---     tableName _ = "tbl"
---     fieldNames _ = ["fld1", "fld2"]
---
--- λ> selectEntity False Nothing id (Proxy :: Proxy Tbl)
--- "SELECT \\"fld1\\", \\"fld2\\" FROM tbl"
--- λ> selectEntity False Nothing ("id":) (Proxy :: Proxy Tbl)
--- "SELECT \\"id\\", \\"fld1\\", \\"fld2\\" FROM tbl"
--- λ> selectEntity False (Just "t") ("id":) (Proxy :: Proxy Tbl)
--- "SELECT \\"t\\".\\"id\\", \\"t\\".\\"fld1\\", \\"t\\".\\"fld2\\" FROM tbl"
--- @
-selectEntity :: (Entity a)
-             => Bool                -- ^ distinct?
-             -> (Maybe Query)       -- ^ namespace for fields
-             -> ([Query] -> [Query]) -- ^ append/prepend some fields to the
-                                   -- query. (i.e. "id")
+-}
+
+insertInto :: (ToMarkedRow b)
+           => Text               -- ^ table name
+           -> b                  -- ^ list of pairs (name, value) to insert into
+           -> SqlBuilder
+insertInto tname b =
+    let mr = toMarkedRow b
+        names = mconcat
+                $ L.intersperse ", "
+                $ map (toSqlBuilder . fst)
+                $ unMR mr
+        values = mconcat
+                 $ L.intersperse ", "
+                 $ map snd
+                 $ unMR mr
+    in [sqlExp|INSERT INTO ^{mkIdent tname}
+               (^{names}) VALUES (^{values})|]
+
+
+{- | Build entity fields
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> runSqlBuilder con $ entityFields id id (Proxy :: Proxy Foo)
+"\"name\", \"size\""
+
+>>> runSqlBuilder con $ entityFields ("id":) id (Proxy :: Proxy Foo)
+"\"id\", \"name\", \"size\""
+
+>>> runSqlBuilder con $ entityFields (\l -> ("id":l) ++ ["created"]) id (Proxy :: Proxy Foo)
+"\"id\", \"name\", \"size\", \"created\""
+
+>>> runSqlBuilder con $ entityFields id ("f"<>) (Proxy :: Proxy Foo)
+"\"f\".\"name\", \"f\".\"size\""
+
+>>> runSqlBuilder con $ entityFields ("f.id":) ("f"<>) (Proxy :: Proxy Foo)
+"\"f\".\"id\", \"f\".\"name\", \"f\".\"size\""
+
+-}
+
+entityFields :: (Entity a)
+             => ([FN] -> [FN])    -- ^ modify list of fields. Applied second
+             -> (FN -> FN)        -- ^ modify each field name,
+                                -- e.g. prepend each field with
+                                -- prefix, like ("t"<>). Applied first
              -> Proxy a
-             -> Query
-selectEntity distinct mpre qfun a =
-    selectFields distinct mpre
-    (qfun $ fieldNames a)
-    $ tableName a
+             -> SqlBuilder
+entityFields xpref fpref p =
+    buildFields
+    $ xpref
+    $ map (fpref . FN . (:[]))
+    $ fieldNames p
 
--- | Same as 'selectEntity' but generates INSERT query
-insertEntity :: (Entity a) => Proxy a -> Query
-insertEntity a =
-    mconcat
-    [ "INSERT INTO "
-    , dquo $ tableName a
-    , "("
-    , concFields Nothing $ fieldNames a
-    , ") values ("
-    , qIntercalate ", "
-      $ map (const "?")
-      $ fieldNames a
-    , ")" ]
+{- | Same as 'entityFields' but prefixes list of names with __id__
+field. This is shorthand function for often usage.
 
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> runSqlBuilder con $ entityFieldsId id (Proxy :: Proxy Foo)
+"\"id\", \"name\", \"size\""
 
--- | Auxiliary function to abstract off the query generation. Used to create
--- functions 'pgInsertEntity' and 'mInsertEntity'. First argument is a query
--- executor, usually 'pgQuery' or 'mQuery'
-someInsertEntity :: forall a m. (Monad m, Entity a, ToRow a, FromField (EntityId a))
-                 => (Query -> a -> m ([Only (EntityId a)])) -- query executor
-                 -> a                                     -- entity
-                 -> m (EntityId a)
-someInsertEntity actor a = do
-    [Only ret] <- actor insertEnt a
-    return ret
-  where
-    insertEnt =
-        mconcat
-        [ insertEntity (Proxy :: Proxy a)
-        , " RETURNING id" ]
+>>> runSqlBuilder con $ entityFieldsId ("f"<>) (Proxy :: Proxy Foo)
+"\"f\".\"id\", \"f\".\"name\", \"f\".\"size\""
 
+-}
 
-someSelectEntities :: forall m a q. (Functor m, Entity a, FromRow a, ToRow q, FromField (EntityId a))
-                 => (Query -> q -> m [(Only (EntityId a)) :. a])
-                 -> Bool           -- ^ distinct?
-                 -> (Maybe Query) -- ^ namespace for each field
-                 -> Query         -- ^ WHERE clause or whatever after SELECT .. FROM
-                 -> q             -- ^ parameters for query
-                 -> m [Ent a]
-someSelectEntities actor distinct mpre q prms = do
-    map toTuples
-        <$> actor selectQ prms
-  where
-    toTuples ((Only eid) :. entity) = (eid, entity)
-    selectQ =
-        mconcat
-        [ selectEntity distinct mpre ("id":)
-          (Proxy :: Proxy a)
-        , " "
-        , q ]
+entityFieldsId :: (Entity a)
+               => (FN -> FN)
+               -> Proxy a
+               -> SqlBuilder
+entityFieldsId fpref p =
+    let xpref = ((fpref "id"):)
+    in entityFields xpref fpref p
+
+{- | Generate SELECT query string for entity
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> runSqlBuilder con $ selectEntity (entityFieldsId id) (Proxy :: Proxy Foo)
+"SELECT \"id\", \"name\", \"size\" FROM \"foo\""
+
+>>> runSqlBuilder con $ selectEntity (entityFieldsId ("f"<>)) (Proxy :: Proxy Foo)
+"SELECT \"f\".\"id\", \"f\".\"name\", \"f\".\"size\" FROM \"foo\""
+
+>>> runSqlBuilder con $ selectEntity (entityFields id id) (Proxy :: Proxy Foo)
+"SELECT \"name\", \"size\" FROM \"foo\""
+
+-}
+
+selectEntity :: (Entity a)
+             => (Proxy a -> SqlBuilder) -- ^ build fields part from proxy
+             -> Proxy a
+             -> SqlBuilder
+selectEntity bld p =
+    [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
 
 
-someSelectJustEntities :: forall m a q. (Functor m, Monad m, Entity a, FromRow a, ToRow q)
-                       => (Query -> q -> m [a]) -- ^ query executor
-                       -> Bool     -- ^ distinct ?
-                       -> (Maybe Query) -- ^ namespace for fields
-                       -> Query        -- ^ WHERE clause or whatever after SELECT .. FROM
-                       -> q            -- ^ parameters for query
-                       -> m [a]
-someSelectJustEntities actor distinct mpre q prms = do
-    actor selectQ prms
-  where
-    selectQ =
-        mconcat
-        [ selectEntity distinct mpre id
-          (Proxy :: Proxy a)
-        , " "
-        , q ]
+{- | Generates SELECT FROM WHERE query with most used conditions
 
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR []
+"SELECT \"name\", \"size\" FROM \"foo\""
 
-someGetEntity :: forall m a. (Functor m, Entity a, FromRow a, ToField (EntityId a))
-              => (Query -> Only (EntityId a) -> m [a])
-              -> EntityId a
-              -> m (Maybe a)
-someGetEntity actor eid =
-    listToMaybe <$> actor selectQ (Only eid)
-  where
-    selectQ =
-        mconcat
-        [ selectEntity False Nothing id
-          (Proxy :: Proxy a)
-        , "  WHERE id = ? LIMIT 1 " ]
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname")]
+"SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' "
 
+>>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname"), ("size", mkValue 10)]
+"SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' AND \"size\" = 10 "
 
-someGetEntityBy :: forall m a b. (Functor m, Entity a, FromRow a,
-                            FromField (EntityId a), ToMarkedRow b)
-                => (Query -> [Action] -> m [(Only (EntityId a)) :. a])
-                -> b             -- ^ constrain row
-                -> m (Maybe (Ent a))
-someGetEntityBy actor row =
-    ((fmap toTuple) . listToMaybe)
-    <$> actor selectQ (map snd fields)
-  where
-    fields = toMarkedRow row
-    toTuple ((Only eid) :. e) = (eid, e)
-    selectQ =
-        mconcat
-        [ selectEntity False Nothing ("id":)
-          (Proxy :: Proxy a)
-        , " WHERE "
-        , conditions
-        , " LIMIT 1" ]
-    conditions = qIntercalate " AND "
-                 $ map ((\f -> (dquo f) <> " = ?") . fst)
-                 fields
+-}
 
-
-someInsertManyEntities :: forall a m x. (Monad m, Entity a, ToRow a)
-                       => (Query -> [a] -> m x) -- ^ query executor
-                       -> [a]                     -- ^ entity
-                       -> m ()
-someInsertManyEntities actor a = do
-    _ <- actor (insertEntity (Proxy :: Proxy a)) a
-    return ()
-
-
-someDeleteEntity :: forall a m x. (Entity a, ToField (EntityId a), Functor m)
-                 => (Query -> Only (EntityId a) -> m x)
-                 -> EntityId a
-                 -> m ()
-someDeleteEntity actor eid = fmap (const ())
-                             $ actor q
-                             $ Only eid
-  where
-    q = mconcat
-        [ "DELETE FROM "
-        , dquo $ tableName (Proxy :: Proxy a)
-        , " WHERE id = ? " ]
-
-
-someUpdateEntity :: forall a b m x. (Monad m, ToMarkedRow b, Entity a, ToField (EntityId a), Typeable a, Typeable b)
-                 => (Query -> [Action] -> m x)
-                 -> (EntityId a)
+selectEntitiesBy :: (Entity a, ToMarkedRow b)
+                 => ([FN] -> [FN])
+                 -> Proxy a
                  -> b
-                 -> m ()
-someUpdateEntity actor eid prm =
-    unless (null rowlist) $ do
-        _ <- actor q fields
-        return ()
+                 -> SqlBuilder
+selectEntitiesBy xpref p b =
+    let mr = toMarkedRow b
+        cond = if L.null $ unMR mr
+               then mempty
+               else [sqlExp| WHERE ^{mrToBuilder "AND" mr}|]
+        q = selectEntity (entityFields xpref id) p
+    in q <> cond
+
+
+
+{- | Convert entity instance to marked row to perform inserts updates
+and same stuff
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ mrToBuilder ", " $ entityToMR $ Foo "Enterprise" 610
+" \"name\" = 'Enterprise' ,  \"size\" = 610 "
+
+-}
+
+entityToMR :: forall a. (Entity a, ToRow a) => a -> MarkedRow
+entityToMR a =
+    let p = Proxy :: Proxy a
+        names = map textFN $ fieldNames p
+        values = map mkValue $ toRow a
+    in MR $ zip names values
+
+
+{- | Generates __INSERT INTO__ query for any instance of 'Entity' and 'ToRow'
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ insertEntity $ Foo "Enterprise" 910
+"INSERT INTO \"foo\" (\"name\", \"size\") VALUES ('Enterprise', 910)"
+
+-}
+
+insertEntity :: forall a. (Entity a, ToRow a) => a -> SqlBuilder
+insertEntity a =
+    let p = Proxy :: Proxy a
+        mr = entityToMR a
+    in insertInto (tableName p) mr
+
+{- | Same as 'insertEntity' but generates query to insert many queries at same time
+
+>>> data Foo = Foo { fName :: Text, fSize :: Int }
+>>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
+>>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
+>>> runSqlBuilder con $ insertManyEntities $ NL.fromList [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
+"INSERT INTO \"foo\" (\"name\",\"size\") VALUES ('meter',1),('table',2),('earth',151930000000)"
+
+-}
+
+insertManyEntities :: forall a. (Entity a, ToRow a) => NonEmpty a -> SqlBuilder
+insertManyEntities rows =
+    let p = Proxy :: Proxy a
+        names = mconcat
+                $ L.intersperse ","
+                $ map mkIdent
+                $ fieldNames p
+        values = mconcat
+                 $ L.intersperse ","
+                 $ map rValue
+                 $ NL.toList rows
+
+    in [sqlExp|INSERT INTO ^{mkIdent $ tableName p}
+               (^{names}) VALUES ^{values}|]
   where
-    fields = (map snd rowlist)
-             ++ [toField eid]
-    q = mconcat
-        [ "UPDATE "
-        , dquo $ tableName (Proxy :: Proxy a)
-        , " SET "
-        , qIntercalate ", "
-          $ map (nameToQ . fst) rowlist
-        , " WHERE id = ?" ]
-
-    rowlist = checkMR $ toMarkedRow prm
-    checkMR r = if (S.isSubsetOf
-                    (S.fromList $ map fst r)
-                    (S.fromList $ fieldNames
-                     (Proxy :: Proxy a)))
-                then r
-                else error
-                     $ "fields of " <> tbname
-                     <> " are not subset of fields of " <> taname
-    tbname = show $ typeRep (Proxy :: Proxy b)
-    taname = show $ typeRep (Proxy :: Proxy a)
-    nameToQ name = (dquo name) <> " = ?"
-
-
-someSelectCount :: forall m a prm. (Entity a, Functor m)
-                => (Query -> prm -> m [[Integer]])
-                -> Proxy a
-                -> Query
-                -> prm
-                -> m Integer
-someSelectCount actor prox q prms =
-    fstfst <$> actor selectQ prms
-  where
-    fstfst [(a:_)] = a
-    fstfst _ = error
-               "someSelectCount: query returned invalid count of values"
-    selectQ =
-        mconcat
-        [ "SELECT COUNT(1) FROM "
-        , tableName prox
-        , " "
-        , q ]
+    rValue row =
+        let values = mconcat
+                     $ L.intersperse ","
+                     $ map mkValue
+                     $ toRow row
+        in [sqlExp|(^{values})|]

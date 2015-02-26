@@ -119,6 +119,7 @@ embedSql :: String               -- ^ File path
          -> Q Exp
 embedSql path = do
     [e| (Query ( $(embedFile path) )) |]
+{-# DEPRECATED embedSql "use 'sqlExpEmbed' instead" #-}
 
 -- embed sql file by pattern. __sqlFile "dir/file"__ is just the same as
 -- __embedSql "sql/dir/file.sql"__
@@ -126,3 +127,4 @@ sqlFile :: String                -- ^ sql file pattern
         -> Q Exp
 sqlFile s = do
     embedSql $ "sql/" ++ s ++ ".sql"
+{-# DEPRECATED sqlFile "use 'sqlExpFile' instead" #-}

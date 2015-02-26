@@ -20,6 +20,7 @@ library
 
   exposed-modules: PGSimple
                  , PGSimple.Config
+                 , PGSimple.Entity
                  , PGSimple.Functions
                  , PGSimple.Internal
                  , PGSimple.SqlBuilder
@@ -48,6 +49,7 @@ library
                     , TupleSections
                     , TypeFamilies
                     , TypeOperators
+                    , UndecidableInstances
                     , ViewPatterns
 
   build-depends: base >=4.6 && < 5
@@ -56,18 +58,22 @@ library
                , blaze-builder
                , bytestring
                , containers
+               , either
                , exceptions
                , file-embed
                , haskell-src-meta
-               , monad-control
+               , monad-control                 == 0.3.3.1 || > 1.0.0.3
+               , monad-logger
                , mtl
                , postgresql-simple             >= 0.3 && < 0.5
                , resource-pool
+               , semigroups
                , template-haskell
                , text
                , time
-               , transformers
+               , transformers                            < 0.4
                , transformers-base
+               , transformers-compat           >= 0.3
 
   ghc-options: -Wall
 
@@ -82,6 +88,8 @@ test-suite test
   main-is: Main.hs
 
   default-extensions: OverloadedStrings
+                    , TemplateHaskell
+                    , FlexibleInstances
 
   build-depends: base >=4.6 && < 5
                , QuickCheck
@@ -90,5 +98,7 @@ test-suite test
                , quickcheck-assertions
                , quickcheck-instances
                , tasty
+               , tasty-hunit
                , tasty-quickcheck
+               , tasty-th
                , text
