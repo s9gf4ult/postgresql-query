@@ -20,15 +20,14 @@ cabal-version:       >=1.10
 library
   hs-source-dirs: src
 
-  exposed-modules: PGSimple
-                 , PGSimple.Config
-                 , PGSimple.Entity
-                 , PGSimple.Functions
-                 , PGSimple.Internal
-                 , PGSimple.SqlBuilder
-                 , PGSimple.TH
-                 , PGSimple.TH.SqlExp
-                 , PGSimple.Types
+  exposed-modules: Database.PostgreSQL.Query
+                 , Database.PostgreSQL.Query.Entity
+                 , Database.PostgreSQL.Query.Functions
+                 , Database.PostgreSQL.Query.Internal
+                 , Database.PostgreSQL.Query.SqlBuilder
+                 , Database.PostgreSQL.Query.TH
+                 , Database.PostgreSQL.Query.TH.SqlExp
+                 , Database.PostgreSQL.Query.Types
 
   default-extensions: TemplateHaskell
                     , CPP
@@ -67,7 +66,7 @@ library
                , monad-control                 == 0.3.3.1 || > 1.0.0.3
                , monad-logger
                , mtl
-               , postgresql-simple             >= 0.3 && < 0.5
+               , postgresql-simple             >= 0.4.10.0
                , resource-pool
                , semigroups
                , template-haskell
@@ -96,7 +95,7 @@ test-suite test
   build-depends: base >=4.6 && < 5
                , QuickCheck
                , attoparsec
-               , pgsimple
+               , postgresql-query
                , quickcheck-assertions
                , quickcheck-instances
                , tasty

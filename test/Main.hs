@@ -6,7 +6,7 @@ import Control.Applicative
 import Data.Attoparsec.Text ( parseOnly )
 import Data.Monoid
 import Data.Text ( Text )
-import PGSimple.TH.SqlExp
+import Database.PostgreSQL.Query.TH.SqlExp
 import Test.QuickCheck.Assertions
 import Test.QuickCheck.Instances ()
 import Test.QuickCheck.Modifiers

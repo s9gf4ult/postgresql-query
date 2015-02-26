@@ -1,4 +1,4 @@
-module PGSimple.TH.SqlExp
+module Database.PostgreSQL.Query.TH.SqlExp
        ( -- * QQ
          sqlExp
          -- * Types
@@ -24,14 +24,14 @@ import Data.FileEmbed ( bsToExp )
 import Data.Maybe
 import Data.Monoid
 import Data.Text ( Text )
+import Database.PostgreSQL.Query.SqlBuilder
+    ( sqlBuilderFromField,
+      ToSqlBuilder(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import PGSimple.SqlBuilder
-    ( sqlBuilderFromField,
-      ToSqlBuilder(..) )
 
 import qualified Data.ByteString as B
 import qualified Data.Text as T
