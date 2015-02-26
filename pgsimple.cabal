@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                pgsimple
-version:             0.1.4
+version:             1.0.0
 synopsis:            Some kind of primitive ORM
 -- description:
 license:             BSD3
@@ -16,16 +16,22 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
+  hs-source-dirs: src
+
   exposed-modules: PGSimple
                  , PGSimple.Config
+                 , PGSimple.Entity
                  , PGSimple.Functions
                  , PGSimple.Internal
+                 , PGSimple.SqlBuilder
                  , PGSimple.TH
+                 , PGSimple.TH.SqlExp
                  , PGSimple.Types
 
   default-extensions: TemplateHaskell
                     , CPP
                     , DeriveDataTypeable
+                    , DeriveGeneric
                     , EmptyDataDecls
                     , FlexibleContexts
                     , FlexibleInstances
@@ -43,25 +49,56 @@ library
                     , TupleSections
                     , TypeFamilies
                     , TypeOperators
+                    , UndecidableInstances
                     , ViewPatterns
 
-  build-depends: base >=4.7 && <4.8
+  build-depends: base >=4.6 && < 5
                , aeson
+               , attoparsec
+               , blaze-builder
                , bytestring
                , containers
+               , either
                , exceptions
                , file-embed
-               , monad-control
+               , haskell-src-meta
+               , monad-control                 == 0.3.3.1 || > 1.0.0.3
+               , monad-logger
                , mtl
                , postgresql-simple             >= 0.3 && < 0.5
                , resource-pool
+               , semigroups
                , template-haskell
                , text
                , time
-               , transformers
+               , transformers                            < 0.4
                , transformers-base
+               , transformers-compat           >= 0.3
 
   ghc-options: -Wall
 
-  -- hs-source-dirs:
   default-language:    Haskell2010
+
+
+test-suite test
+  type:    exitcode-stdio-1.0
+  default-language:    Haskell2010
+  ghc-options:     -Wall
+  hs-source-dirs:  test
+  main-is: Main.hs
+
+  default-extensions: OverloadedStrings
+                    , TemplateHaskell
+                    , FlexibleInstances
+
+  build-depends: base >=4.6 && < 5
+               , QuickCheck
+               , attoparsec
+               , pgsimple
+               , quickcheck-assertions
+               , quickcheck-instances
+               , tasty
+               , tasty-hunit
+               , tasty-quickcheck
+               , tasty-th
+               , text

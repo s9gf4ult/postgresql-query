@@ -1,17 +1,25 @@
 module PGSimple.TH
-       ( deriveFromRow
+       ( -- * Deriving instances
+         deriveFromRow
        , deriveToRow
+         -- * Embedding sql files
        , embedSql
+       , sqlFile
+         -- * Sql string interpolation
+       , sqlExp
+       , sqlExpEmbed
+       , sqlExpFile
        ) where
 
 import Prelude
 
-import Control.Applicative ( (<$>), (<*>) )
+import Control.Applicative
 import Data.FileEmbed ( embedFile )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
+import PGSimple.TH.SqlExp
 
 
 cName :: (Monad m) => Con -> m Name
@@ -106,6 +114,17 @@ deriveToRow t = do
             (\e -> AppE (VarE tof) (VarE e))
             v
 
-embedSql :: String -> Q Exp
+-- embed sql file as value
+embedSql :: String               -- ^ File path
+         -> Q Exp
 embedSql path = do
     [e| (Query ( $(embedFile path) )) |]
+{-# DEPRECATED embedSql "use 'sqlExpEmbed' instead" #-}
+
+-- embed sql file by pattern. __sqlFile "dir/file"__ is just the same as
+-- __embedSql "sql/dir/file.sql"__
+sqlFile :: String                -- ^ sql file pattern
+        -> Q Exp
+sqlFile s = do
+    embedSql $ "sql/" ++ s ++ ".sql"
+{-# DEPRECATED sqlFile "use 'sqlExpFile' instead" #-}
