@@ -129,6 +129,6 @@ templates like inside `sqlExp`.
 pgQuery $(sqlExpFile "foo/bar")
 ```
 
-Is just absolutely the same as above. It just prepends `sql/` and
+Is absolutely the same as above. It just prepends `sql/` and
 appends `.sql` to your string. If you agree to follow naming
-convention you are welcome to use `sqlExpFile`.
+conventions you are welcome to use `sqlExpFile`.
