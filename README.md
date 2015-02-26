@@ -113,3 +113,22 @@ WHERE "#{strange}identifier" SIMILAR TO '#{1,10}' /*nested/*^{block}*/comment*/
 
 `sqlExp` will remove all comments and will not interpolate inside
 string literals or quoted identifiers at all.
+
+## sqlExpEmbed and sqlExpFile
+
+If you have realy huge hardcore sql template you can
+
+```haskell
+pgQuery $(sqlExpEmbed "sql/foo/bar.sql")
+```
+
+It works just like Yesod's templates. You can use interpolation inside
+templates like inside `sqlExp`.
+
+```haskell
+pgQuery $(sqlExpFile "foo/bar")
+```
+
+Is just absolutely the same as above. It just prepends `sql/` and
+appends `.sql` to your string. If you agree to follow naming
+convention you are welcome to use `sqlExpFile`.
