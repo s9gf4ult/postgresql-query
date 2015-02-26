@@ -13,7 +13,6 @@ import Test.QuickCheck.Modifiers
 import Test.QuickCheck.Property
     ( Result )
 import Test.Tasty
-import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Tasty.TH
 
@@ -33,14 +32,18 @@ instance Arbitrary RopeList where
     arbitrary =
         resize 10 $ (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
 
+wordAlpha :: [Text]
 wordAlpha = map T.singleton
             $ ['A'..'Z'] ++ ['a'..'z']
             ++ "!@$%&*()[];|{}<>="
 
+stringAlpha :: [Text]
 stringAlpha = wordAlpha ++ ["''", "\\'", " "]
 
+identAlpha :: [Text]
 identAlpha = wordAlpha ++ ["\"\"", " "]
 
+intAlpha :: [Text]
 intAlpha = wordAlpha ++ [" "]
 
 instance Arbitrary Rope where
