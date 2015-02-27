@@ -1,5 +1,5 @@
 name:                postgresql-query
-version:             1.0.0
+version:             1.0.1
 
 synopsis: Sql interpolating quasiquote plus some kind of primitive ORM
           using it
