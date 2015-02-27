@@ -1,4 +1,4 @@
-module PGSimple.Functions
+module Database.PostgreSQL.Query.Functions
        ( -- * Raw query execution
          pgQuery
        , pgExecute
@@ -35,6 +35,19 @@ import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )
+import Database.PostgreSQL.Query.Entity
+    ( Entity(..), Ent )
+import Database.PostgreSQL.Query.Internal
+    ( insertEntity, selectEntity, entityFieldsId,
+      entityFields, selectEntitiesBy, insertManyEntities,
+      updateTable, insertInto )
+import Database.PostgreSQL.Query.SqlBuilder
+    ( ToSqlBuilder(..), runSqlBuilder, mkIdent  )
+import Database.PostgreSQL.Query.TH
+    ( sqlExp )
+import Database.PostgreSQL.Query.Types
+    ( FN, HasPostgres(..), TransactionSafe,
+      ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 import Database.PostgreSQL.Simple
     ( ToRow, FromRow, execute_, query_,
       withTransaction, withSavepoint )
@@ -44,19 +57,6 @@ import Database.PostgreSQL.Simple.ToField
     ( ToField )
 import Database.PostgreSQL.Simple.Types
     ( Query(..), Only(..), (:.)(..) )
-import PGSimple.Entity
-    ( Entity(..), Ent )
-import PGSimple.Internal
-    ( insertEntity, selectEntity, entityFieldsId,
-      entityFields, selectEntitiesBy, insertManyEntities,
-      updateTable, insertInto )
-import PGSimple.SqlBuilder
-    ( ToSqlBuilder(..), runSqlBuilder, mkIdent  )
-import PGSimple.TH
-    ( sqlExp )
-import PGSimple.Types
-    ( FN, HasPostgres(..), TransactionSafe,
-      ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NL

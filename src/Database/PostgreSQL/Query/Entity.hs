@@ -1,4 +1,4 @@
-module PGSimple.Entity
+module Database.PostgreSQL.Query.Entity
        ( Entity(..)
        , Ent
        ) where

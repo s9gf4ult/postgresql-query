@@ -1,4 +1,4 @@
-module PGSimple.SqlBuilder
+module Database.PostgreSQL.Query.SqlBuilder
        ( -- * Types
          SqlBuilder(..)
        , ToSqlBuilder(..)
