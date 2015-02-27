@@ -11,10 +11,14 @@ maintainer:          s9gf4ult@gmail.com
 -- copyright:
 category:            Database
 build-type:          Simple
+cabal-version:       >=1.10
 
 extra-source-files: README.md
 
-cabal-version:       >=1.10
+homepage: https://bitbucket.org/s9gf4ult/postgresql-query
+source-repository head
+  type: git
+  location: git@bitbucket.org:s9gf4ult/postgresql-query.git
 
 library
   hs-source-dirs: src
