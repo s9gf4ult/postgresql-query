@@ -62,6 +62,7 @@ library
                , blaze-builder
                , bytestring
                , containers
+               , data-default
                , either
                , exceptions
                , file-embed

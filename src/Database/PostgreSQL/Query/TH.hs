@@ -2,6 +2,8 @@ module Database.PostgreSQL.Query.TH
        ( -- * Deriving instances
          deriveFromRow
        , deriveToRow
+       , deriveEntity
+       , EntityOptions(..)
          -- * Embedding sql files
        , embedSql
        , sqlFile
@@ -14,23 +16,30 @@ module Database.PostgreSQL.Query.TH
 import Prelude
 
 import Control.Applicative
+import Data.Default
 import Data.FileEmbed ( embedFile )
+import Database.PostgreSQL.Query.Entity ( Entity(..) )
+import Database.PostgreSQL.Query.TH.SqlExp
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
-import Database.PostgreSQL.Query.TH.SqlExp
 
-
+-- | Return constructor name
 cName :: (Monad m) => Con -> m Name
 cName (NormalC n _) = return n
 cName (RecC n _) = return n
 cName _ = error "Constructor must be simple"
 
+-- | Return count of constructor fields
 cArgs :: (Monad m) => Con -> m Int
 cArgs (NormalC _ n) = return $ length n
 cArgs (RecC _ n) = return $ length n
 cArgs _ = error "Constructor must be simple"
+
+cFieldNames :: Con -> [Name]
+cFieldNames (RecC _ vst) = map (\(a, _, _) -> a) vst
+cFieldNames _ = error "Constructor must be a record (product type with field names)"
 
 -- | Derive 'FromRow' instance. i.e. you have type like that
 --
@@ -113,6 +122,48 @@ deriveToRow t = do
             $ map
             (\e -> AppE (VarE tof) (VarE e))
             v
+
+data EntityOptions = EntityOptions
+    { eoTableName      :: String -> String -- ^ Type name to table name converter
+    , eoColumnNames    :: String -> String -- ^ Record field to column name converter
+    , eoDeriveClassess :: [Name]           -- ^ Typeclasses to derive for Id
+    , eoIdType         :: Name             -- ^ Base type for Id
+    }
+
+instance Default EntityOptions where
+    def = EntityOptions
+        { eoTableName = id
+        , eoColumnNames = id
+        , eoDeriveClassess = [''Ord, ''Eq, ''Show]
+        , eoIdType = ''Integer
+        }
+
+-- | Derives instance for 'Entity' using type name and field names.
+deriveEntity :: EntityOptions -> Name -> Q [Dec]
+deriveEntity opts tname = do
+    TyConI (DataD _ _ _ [tcon] _) <- reify tname
+    econt <- [t|Entity $(conT tname)|]
+    ConT entityIdName <- [t|EntityId|]
+    let tnames = nameBase tname
+        idname = tnames ++ "Id"
+        unidname = "get" ++ idname
+        idtype = ConT (eoIdType opts)
+        idcon = RecC (mkName idname)
+                [(mkName unidname, NotStrict, idtype)]
+        iddec = NewtypeInstD [] entityIdName [ConT tname]
+                idcon (eoDeriveClassess opts)
+        tblName = eoTableName opts tnames
+        fldNames = map (eoColumnNames opts . nameBase) $ cFieldNames tcon
+    VarE tableName  <- [e|tableName|]
+    VarE fieldNames <- [e|fieldNames|]
+    let tbldec = FunD tableName  [Clause [WildP] (NormalB $ LitE  $ stringL tblName) []]
+        flddec = FunD fieldNames [Clause [WildP] (NormalB $ ListE $ map (LitE . stringL) fldNames) []]
+        ret = InstanceD [] econt
+              [ iddec, tbldec, flddec ]
+        syndec = TySynD (mkName idname) [] (AppT (ConT entityIdName) (ConT tname))
+    return [ret, syndec]
+
+
 
 -- embed sql file as value
 embedSql :: String               -- ^ File path
