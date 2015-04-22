@@ -1,5 +1,5 @@
 name:                postgresql-query
-version:             1.0.1
+version:             1.1.0
 
 synopsis: Sql interpolating quasiquote plus some kind of primitive ORM
           using it
@@ -32,8 +32,7 @@ library
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
 
-  default-extensions: TemplateHaskell
-                    , CPP
+  default-extensions: CPP
                     , DeriveDataTypeable
                     , DeriveGeneric
                     , EmptyDataDecls
@@ -50,6 +49,7 @@ library
                     , RecordWildCards
                     , ScopedTypeVariables
                     , StandaloneDeriving
+                    , TemplateHaskell
                     , TupleSections
                     , TypeFamilies
                     , TypeOperators
@@ -62,6 +62,7 @@ library
                , blaze-builder
                , bytestring
                , containers
+               , data-default
                , either
                , exceptions
                , file-embed
@@ -91,9 +92,9 @@ test-suite test
   hs-source-dirs:  test
   main-is: Main.hs
 
-  default-extensions: OverloadedStrings
+  default-extensions: FlexibleInstances
+                    , OverloadedStrings
                     , TemplateHaskell
-                    , FlexibleInstances
 
   build-depends: base >=4.6 && < 5
                , QuickCheck
