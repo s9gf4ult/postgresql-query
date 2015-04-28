@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.1.1
+
+### Changed
+
+* `pgInsertManyEntities` returns count of inserted entities
+* `pgDeleteEntity` returns True if entity was actually deleted
+* `pgUpdateEntity` returns True if entity was actually updated
+
 ## 1.1.0
 
 ### Added
