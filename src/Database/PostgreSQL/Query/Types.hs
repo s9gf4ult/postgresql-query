@@ -67,8 +67,7 @@ import qualified Data.Text.Encoding as T
 
 -- | type to put and get from db 'inet' and 'cidr' typed postgresql
 -- fields. This should be in postgresql-simple in fact.
-newtype InetText =
-    InetText
+newtype InetText = InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show
                , Typeable, Monoid, ToField )
@@ -90,7 +89,7 @@ instance FromField InetText where
 
 
 
-{- | Dote separated field name. Each element in nested list will be
+{- | Dot-separated field name. Each element in nested list will be
 properly quoted and separated by dot. It also have instance of
 'ToSqlBuilder' and 'IsString` so you can:
 
@@ -116,8 +115,7 @@ FN ["user","name"]
 
 -}
 
-newtype FN =
-    FN [Text]
+newtype FN = FN [Text]
     deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
 
 instance ToSqlBuilder FN where
@@ -166,8 +164,7 @@ UPDATE tbl SET name = 'name', size = 10, lenght = 20
 
 -}
 
-newtype MarkedRow =
-    MR
+newtype MarkedRow = MR
     { unMR :: [(FN, SqlBuilder)]
     } deriving (Monoid, Typeable, Generic)
 
@@ -283,8 +280,7 @@ instance (TransactionSafe m, Monoid w) => TransactionSafe (WS.WriterT w m)
 -- connection you can run queries in this monad using 'runPgMonadT'. Or you
 -- can use this transformer to run sequence of queries using same
 -- connection with 'launchPG'.
-newtype PgMonadT m a =
-    PgMonadT
+newtype PgMonadT m a = PgMonadT
     { unPgMonadT :: ReaderT Connection m a
     } deriving ( Functor, Applicative, Monad , MonadWriter w
                , MonadState s, MonadError e, MonadTrans
