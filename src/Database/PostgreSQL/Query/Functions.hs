@@ -252,11 +252,11 @@ pgInsertManyEntitiesId ents' =
 -- 'pgInsertManyEntitiesId' does
 pgInsertManyEntities :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToRow a)
                      => [a]
-                     -> m ()
-pgInsertManyEntities [] = return ()
+                     -> m Int64
+pgInsertManyEntities [] = return 0
 pgInsertManyEntities ents' =
     let ents = NL.fromList ents'
-    in void $ pgExecute $ insertManyEntities ents
+    in pgExecute $ insertManyEntities ents
 
 
 {- | Delete entity.
@@ -267,19 +267,21 @@ rmUser uid = do
     pgDeleteEntity uid
 @
 
+Return 'True' if row was actually deleted.
 -}
 
 pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToField (EntityId a), Functor m)
                => EntityId a
-               -> m ()
+               -> m Bool
 pgDeleteEntity eid =
     let p = Proxy :: Proxy a
-    in (const ()) <$> pgExecute [sqlExp|DELETE FROM ^{mkIdent $ tableName p}
-                                        WHERE id = #{eid}|]
+    in fmap (1 ==)
+       $ pgExecute [sqlExp|DELETE FROM ^{mkIdent $ tableName p}
+                           WHERE id = #{eid}|]
 
 
-{- | Update entity using 'ToMarkedRow' instanced value. Requires 'Proxy' while
-'EntityId' is not a data type.
+{- | Update entity using 'ToMarkedRow' instanced value. Requires 'Proxy'
+while 'EntityId' is not a data type.
 
 @
 fixUser :: Text -> EntityId User -> Handler ()
@@ -293,19 +295,21 @@ fixUser username uid = do
               ("name", mkValue username)]
 @
 
+Returns 'True' if record was actually updated and 'False' if there was
+not row with such id (or was more than 1, in fact)
 -}
 
 pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, HasPostgres m, MonadLogger m,
                            ToField (EntityId a), Functor m, Typeable a, Typeable b)
                => EntityId a
                -> b
-               -> m ()
+               -> m Bool
 pgUpdateEntity eid b =
     let p = Proxy :: Proxy a
         mr = toMarkedRow b
     in if L.null $ unMR mr
-       then return ()
-       else fmap (const ())
+       then return False
+       else fmap (1 ==)
             $ pgExecute [sqlExp|UPDATE ^{mkIdent $ tableName p}
                                 SET ^{mrToBuilder ", " mr}
                                 WHERE id = #{eid}|]
