@@ -1,9 +1,14 @@
 # CHANGELOG
 
+## 1.2.0
+
+### Added
+* `pgWithTransactionMode` and its friends, like
+  `pgWithTransactionSerializable` added.
+
 ## 1.1.1
 
 ### Changed
-
 * `pgInsertManyEntities` returns count of inserted entities
 * `pgDeleteEntity` returns True if entity was actually deleted
 * `pgUpdateEntity` returns True if entity was actually updated
