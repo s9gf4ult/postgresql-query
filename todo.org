@@ -1,0 +1,15 @@
+* pending tasks
+** TODO Make it compatible with current hackage
+   transformers-0.4, mtl-0.2.2 ...
+** TODO Move entity functions to its own module
+** TODO Move entity derivation to 'TH.Entity`
+** TODO Move quasiquote to module `QQ`
+** TODO Remove ToSqlBuilder instances from Text and ByteString
+** TODO Move `InetText` to pgs by patch and remove it from pgq
+** TODO Conditional generation quasiquote sytax?
+   ?{WHERE *{cond}} ?{ORDER BY *{orderCond}}
+   to simplify query generation
+** TODO Add type for simple condition generation like AND/OR
+   Type should be instance of `ToSqlBuilder`
+** TODO Make query string building right
+   Now query string is not generated correctly
