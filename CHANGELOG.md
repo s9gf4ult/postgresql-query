@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.2.1
+
+* remove version constraints for `transformers` package
+
 ## 1.2.0
 
 ### Added
