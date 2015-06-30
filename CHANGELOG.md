@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 1.3.1
+### Changed
+* work with `hset-1.0.0`
+
 ## 1.3.0
 ### Added
 * dependency from `hreader` and `hset`

@@ -262,7 +262,7 @@ instance (HasPostgres m, Monoid w) => HasPostgres (WS.WriterT w m) where
             WS.runWriterT (action con)
     {-# INLINABLE withPGConnection #-}
 
-instance (MonadBase IO m, MonadBaseControl IO m, Contains els (Pool Connection))
+instance (MonadBase IO m, MonadBaseControl IO m, HGetable els (Pool Connection))
          => HasPostgres (HReaderT els m) where
     withPGConnection action = do
         pool <- haskM
