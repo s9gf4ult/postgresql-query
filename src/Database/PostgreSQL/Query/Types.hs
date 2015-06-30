@@ -24,6 +24,7 @@ import Control.Monad.Catch
 import Control.Monad.Cont.Class ( MonadCont )
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.Fix ( MonadFix(..) )
+import Control.Monad.HReader
 import Control.Monad.Logger
 import Control.Monad.Reader
     ( MonadReader(..), ReaderT(..) )
@@ -36,7 +37,9 @@ import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
+import Data.HSet
 import Data.Monoid
+import Data.Pool
 import Data.String
 import Data.Text ( Text )
 import Data.Typeable
@@ -258,6 +261,12 @@ instance (HasPostgres m, Monoid w) => HasPostgres (WS.WriterT w m) where
         WS.WriterT $ withPGConnection $ \con ->
             WS.runWriterT (action con)
     {-# INLINABLE withPGConnection #-}
+
+instance (MonadBase IO m, MonadBaseControl IO m, Contains els (Pool Connection))
+         => HasPostgres (HReaderT els m) where
+    withPGConnection action = do
+        pool <- haskM
+        withResource pool action
 
 -- | Empty typeclass signing monad in which transaction is
 -- safe. i.e. `PgMonadT` have this instance, but some other monad giving
