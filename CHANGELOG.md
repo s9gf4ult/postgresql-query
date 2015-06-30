@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.3.0
+### Added
+* dependency from `hreader` and `hset`
+* `HasPostgres` instance for `HReaderT` transformer
+
 ## 1.2.1
 
 * remove version constraints for `transformers` package
