@@ -133,15 +133,15 @@ deriveToRow t = do
 data EntityOptions = EntityOptions
     { eoTableName      :: String -> String -- ^ Type name to table name converter
     , eoColumnNames    :: String -> String -- ^ Record field to column name converter
-    , eoDeriveClassess :: [Name]           -- ^ Typeclasses to derive for Id
-    , eoIdType         :: Name             -- ^ Base type for Id
+    , eoDeriveClasses :: [Name]           -- ^ Typeclasses to derive for Id
+    , eoIdType        :: Name             -- ^ Base type for Id
     }
 
 instance Default EntityOptions where
     def = EntityOptions
         { eoTableName = id
         , eoColumnNames = id
-        , eoDeriveClassess = [''Ord, ''Eq, ''Show]
+        , eoDeriveClasses = [''Ord, ''Eq, ''Show]
         , eoIdType = ''Integer
         }
 
@@ -156,10 +156,10 @@ data Agent = Agent
     } deriving (Ord, Eq, Show)
 
 $(deriveEntity
-  def { eoIdType      = ''Id
-      , eoTableName   = toUnderscore
-      , eoColumnNames = toUnderscore . drop 1
-      , eoDeriveClassess =
+  def { eoIdType        = ''Id
+      , eoTableName     = toUnderscore
+      , eoColumnNames   = toUnderscore . drop 1
+      , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
       }
@@ -195,7 +195,7 @@ deriveEntity opts tname = do
         idcon = RecC (mkName idname)
                 [(mkName unidname, NotStrict, idtype)]
         iddec = NewtypeInstD [] entityIdName [ConT tname]
-                idcon (eoDeriveClassess opts)
+                idcon (eoDeriveClasses opts)
         tblName = eoTableName opts tnames
         fldNames = map (eoColumnNames opts . nameBase) $ cFieldNames tcon
     VarE ntableName  <- [e|tableName|]
@@ -217,10 +217,10 @@ data Agent = Agent
     } deriving (Ord, Eq, Show)
 
 $(deriveEverything
-  def { eoIdType      = ''Id
-      , eoTableName   = toUnderscore
-      , eoColumnNames = toUnderscore . drop 1
-      , eoDeriveClassess =
+  def { eoIdType        = ''Id
+      , eoTableName     = toUnderscore
+      , eoColumnNames   = toUnderscore . drop 1
+      , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
       }
