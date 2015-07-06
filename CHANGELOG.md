@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 1.4.1
+### Changed
+* `eoDeriveClasse` renamed to `eoDeriveClasses`
+### Added
+* Grammar added to documentation
+
 ## 1.3.1
 ### Changed
 * work with `hset-1.0.0`
