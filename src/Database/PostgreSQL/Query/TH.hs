@@ -133,8 +133,8 @@ deriveToRow t = do
 data EntityOptions = EntityOptions
     { eoTableName      :: String -> String -- ^ Type name to table name converter
     , eoColumnNames    :: String -> String -- ^ Record field to column name converter
-    , eoDeriveClasses :: [Name]           -- ^ Typeclasses to derive for Id
-    , eoIdType        :: Name             -- ^ Base type for Id
+    , eoDeriveClasses  :: [Name]           -- ^ Typeclasses to derive for Id
+    , eoIdType         :: Name             -- ^ Base type for Id
     }
 
 instance Default EntityOptions where
