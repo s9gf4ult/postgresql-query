@@ -36,7 +36,6 @@ import Data.Int ( Int64 )
 import Data.Maybe ( listToMaybe )
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
-import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Query.Entity
     ( Entity(..), Ent )
@@ -45,7 +44,7 @@ import Database.PostgreSQL.Query.Internal
       entityFields, selectEntitiesBy, insertManyEntities,
       updateTable, insertInto )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( ToSqlBuilder(..), runSqlBuilder, mkIdent  )
+    ( ToSqlBuilder(..), runSqlBuilder )
 import Database.PostgreSQL.Query.TH
     ( sqlExp )
 import Database.PostgreSQL.Query.Types
@@ -323,7 +322,7 @@ pgDeleteEntity :: forall a m. (Entity a, HasPostgres m, MonadLogger m, ToField (
 pgDeleteEntity eid =
     let p = Proxy :: Proxy a
     in fmap (1 ==)
-       $ pgExecute [sqlExp|DELETE FROM ^{mkIdent $ tableName p}
+       $ pgExecute [sqlExp|DELETE FROM ^{tableName p}
                            WHERE id = #{eid}|]
 
 
@@ -357,7 +356,7 @@ pgUpdateEntity eid b =
     in if L.null $ unMR mr
        then return False
        else fmap (1 ==)
-            $ pgExecute [sqlExp|UPDATE ^{mkIdent $ tableName p}
+            $ pgExecute [sqlExp|UPDATE ^{tableName p}
                                 SET ^{mrToBuilder ", " mr}
                                 WHERE id = #{eid}|]
 
@@ -377,7 +376,7 @@ pgSelectCount :: forall m a q. ( Entity a, HasPostgres m, MonadLogger m, ToSqlBu
               -> q
               -> m Integer
 pgSelectCount p q = do
-    [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{mkIdent $ tableName p} ^{q}|]
+    [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{tableName p} ^{q}|]
     return c
 
 
@@ -406,9 +405,9 @@ will be performed
 -}
 
 pgRepsertRow :: (HasPostgres m, MonadLogger m, ToMarkedRow wrow, ToMarkedRow urow)
-             => Text              -- ^ Table name
-             -> wrow              -- ^ where condition
-             -> urow              -- ^ update row
+             => FN              -- ^ Table name
+             -> wrow            -- ^ where condition
+             -> urow            -- ^ update row
              -> m ()
 pgRepsertRow tname wrow urow = do
     let wmr = toMarkedRow wrow
