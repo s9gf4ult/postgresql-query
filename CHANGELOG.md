@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 1.4.1
+## 1.4.0
 ### Changed
 * `eoDeriveClasse` renamed to `eoDeriveClasses`
 ### Added
