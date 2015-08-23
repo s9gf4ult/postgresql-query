@@ -37,7 +37,8 @@ import qualified Data.List as L
 {- $setup
 >>> import Database.PostgreSQL.Simple
 >>> import Database.PostgreSQL.Simple.ToField
->>> import PGSimple.SqlBuilder
+>>> import Database.PostgreSQL.Query.SqlBuilder
+>>> import Data.Text ( Text )
 >>> con <- connect defaultConnectInfo
 -}
 
@@ -257,6 +258,7 @@ insertManyEntities rows =
     let p = Proxy :: Proxy a
         names = mconcat
                 $ L.intersperse ","
+                $ map toSqlBuilder
                 $ fieldNames p
         values = mconcat
                  $ L.intersperse ","

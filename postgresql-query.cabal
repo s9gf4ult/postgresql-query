@@ -8,7 +8,6 @@ license:             BSD3
 license-file:        LICENSE
 author:              Aleksey Uimanov
 maintainer:          s9gf4ult@gmail.com
--- copyright:
 category:            Database
 build-type:          Simple
 cabal-version:       >=1.10
@@ -101,9 +100,9 @@ test-suite test
                     , OverloadedStrings
                     , TemplateHaskell
 
-  build-depends: base >=4.6 && < 5
-               , QuickCheck
+  build-depends: QuickCheck
                , attoparsec
+               , base                          >=4.6 && < 5
                , postgresql-query
                , quickcheck-assertions
                , quickcheck-instances
