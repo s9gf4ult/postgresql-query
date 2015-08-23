@@ -65,7 +65,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
 {- $setup
->>> import PGSimple.SqlBuilder
+>>> import Database.PostgreSQL.Query.SqlBuilder
+>>> import Data.Text ( Text )
 >>> c <- connect defaultConnectInfo
 -}
 
