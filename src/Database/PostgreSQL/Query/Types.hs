@@ -53,6 +53,8 @@ import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
     ( ToField )
 import GHC.Generics
+import Instances.TH.Lift ()
+import Language.Haskell.TH.Lift ( deriveLift )
 
 import qualified Data.List as L
 import qualified Control.Monad.Trans.State.Lazy as STL
@@ -74,6 +76,7 @@ newtype InetText = InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show
                , Typeable, Monoid, ToField )
+
 
 instance FromField InetText where
     fromField fld Nothing = returnError ConversionFailed
@@ -120,6 +123,8 @@ FN ["user","name"]
 
 newtype FN = FN [Text]
     deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+
+$(deriveLift ''FN)
 
 instance ToSqlBuilder FN where
     toSqlBuilder (FN tt) =
