@@ -19,16 +19,14 @@ import Prelude
 import Data.List.NonEmpty ( NonEmpty )
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )
-import Data.Text ( Text )
 import Database.PostgreSQL.Query.Entity
     ( Entity(..) )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( SqlBuilder, ToSqlBuilder(..),
-      mkIdent, mkValue )
+    ( SqlBuilder, ToSqlBuilder(..), mkValue )
 import Database.PostgreSQL.Query.TH
     ( sqlExp )
 import Database.PostgreSQL.Query.Types
-    ( FN(..), textFN, MarkedRow(..),
+    ( FN(..), MarkedRow(..),
       ToMarkedRow(..), mrToBuilder )
 import Database.PostgreSQL.Simple.ToRow
     ( ToRow(..) )
@@ -39,7 +37,8 @@ import qualified Data.List as L
 {- $setup
 >>> import Database.PostgreSQL.Simple
 >>> import Database.PostgreSQL.Simple.ToField
->>> import PGSimple.SqlBuilder
+>>> import Database.PostgreSQL.Query.SqlBuilder
+>>> import Data.Text ( Text )
 >>> con <- connect defaultConnectInfo
 -}
 
@@ -63,14 +62,14 @@ buildFields flds = mconcat
 -}
 
 updateTable :: (ToSqlBuilder q, ToMarkedRow flds)
-            => Text              -- ^ table name
-            -> flds              -- ^ fields to update
-            -> q                 -- ^ condition
+            => FN               -- ^ table name
+            -> flds             -- ^ fields to update
+            -> q                -- ^ condition
             -> SqlBuilder
 updateTable tname flds q =
     let mr = toMarkedRow flds
         setFields = mrToBuilder ", " mr
-    in [sqlExp|UPDATE ^{mkIdent tname}
+    in [sqlExp|UPDATE ^{tname}
                SET ^{setFields} ^{q}|]
 
 
@@ -82,8 +81,8 @@ updateTable tname flds q =
 -}
 
 insertInto :: (ToMarkedRow b)
-           => Text               -- ^ table name
-           -> b                  -- ^ list of pairs (name, value) to insert into
+           => FN       -- ^ table name
+           -> b        -- ^ list of pairs (name, value) to insert into
            -> SqlBuilder
 insertInto tname b =
     let mr = toMarkedRow b
@@ -95,7 +94,7 @@ insertInto tname b =
                  $ L.intersperse ", "
                  $ map snd
                  $ unMR mr
-    in [sqlExp|INSERT INTO ^{mkIdent tname}
+    in [sqlExp|INSERT INTO ^{tname}
                (^{names}) VALUES (^{values})|]
 
 
@@ -130,7 +129,7 @@ entityFields :: (Entity a)
 entityFields xpref fpref p =
     buildFields
     $ xpref
-    $ map (fpref . FN . (:[]))
+    $ map fpref
     $ fieldNames p
 
 {- | Same as 'entityFields' but prefixes list of names with __id__
@@ -174,7 +173,7 @@ selectEntity :: (Entity a)
              -> Proxy a
              -> SqlBuilder
 selectEntity bld p =
-    [sqlExp|SELECT ^{bld p} FROM ^{mkIdent $ tableName p}|]
+    [sqlExp|SELECT ^{bld p} FROM ^{tableName p}|]
 
 
 {- | Generates SELECT FROM WHERE query with most used conditions
@@ -221,7 +220,7 @@ and same stuff
 entityToMR :: forall a. (Entity a, ToRow a) => a -> MarkedRow
 entityToMR a =
     let p = Proxy :: Proxy a
-        names = map textFN $ fieldNames p
+        names = fieldNames p
         values = map mkValue $ toRow a
     in MR $ zip names values
 
@@ -252,21 +251,24 @@ insertEntity a =
 
 -}
 
-insertManyEntities :: forall a. (Entity a, ToRow a) => NonEmpty a -> SqlBuilder
+insertManyEntities :: forall a. (Entity a, ToRow a)
+                   => NonEmpty a
+                   -> SqlBuilder
 insertManyEntities rows =
     let p = Proxy :: Proxy a
         names = mconcat
                 $ L.intersperse ","
-                $ map mkIdent
+                $ map toSqlBuilder
                 $ fieldNames p
         values = mconcat
                  $ L.intersperse ","
                  $ map rValue
                  $ NL.toList rows
 
-    in [sqlExp|INSERT INTO ^{mkIdent $ tableName p}
+    in [sqlExp|INSERT INTO ^{tableName p}
                (^{names}) VALUES ^{values}|]
   where
+    rValue :: a -> SqlBuilder
     rValue row =
         let values = mconcat
                      $ L.intersperse ","

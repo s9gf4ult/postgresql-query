@@ -1,6 +1,15 @@
 # CHANGELOG
 
-## 1.4.1
+## 2.0.0
+### Changed
+* `Entity` typeclass now use `FN` instead of `Text`. This provides an
+  ability to define dot-separated table names like
+  `schemaname.tablename`. This changes breaks backward compatibility,
+  so major version is bumped to 2.
+
+* TH code changed according to changes in `Entity` typeclass.
+
+## 1.4.0
 ### Changed
 * `eoDeriveClasse` renamed to `eoDeriveClasses`
 ### Added

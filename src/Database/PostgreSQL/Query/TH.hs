@@ -17,14 +17,18 @@ module Database.PostgreSQL.Query.TH
 import Prelude
 
 import Control.Applicative
+import Control.Monad
 import Data.Default
 import Data.FileEmbed ( embedFile )
+import Data.String
 import Database.PostgreSQL.Query.Entity ( Entity(..) )
 import Database.PostgreSQL.Query.TH.SqlExp
+import Database.PostgreSQL.Query.Types ( FN(..) )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
+import Language.Haskell.TH.Syntax
 
 -- | Return constructor name
 cName :: (Monad m) => Con -> m Name
@@ -196,12 +200,15 @@ deriveEntity opts tname = do
                 [(mkName unidname, NotStrict, idtype)]
         iddec = NewtypeInstD [] entityIdName [ConT tname]
                 idcon (eoDeriveClasses opts)
-        tblName = eoTableName opts tnames
-        fldNames = map (eoColumnNames opts . nameBase) $ cFieldNames tcon
+        tblName = fromString $ eoTableName opts tnames
+        fldNames = map (fromString . eoColumnNames opts . nameBase)
+                   $ cFieldNames tcon
     VarE ntableName  <- [e|tableName|]
     VarE nfieldNames <- [e|fieldNames|]
-    let tbldec = FunD ntableName  [Clause [WildP] (NormalB $ LitE  $ stringL tblName) []]
-        flddec = FunD nfieldNames [Clause [WildP] (NormalB $ ListE $ map (LitE . stringL) fldNames) []]
+    tblExp <- lift (tblName :: FN)
+    fldExp <- mapM lift (fldNames :: [FN])
+    let tbldec = FunD ntableName  [Clause [WildP] (NormalB tblExp) []]
+        flddec = FunD nfieldNames [Clause [WildP] (NormalB $ ListE fldExp) []]
         ret = InstanceD [] econt
               [ iddec, tbldec, flddec ]
         syndec = TySynD (mkName idname) [] (AppT (ConT entityIdName) (ConT tname))
