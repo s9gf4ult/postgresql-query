@@ -67,8 +67,8 @@ library
                , exceptions
                , file-embed
                , haskell-src-meta
-               , hreader                       >= 0.1.0   && < 1.0.0
-               , hset                          >= 1.0.0   && < 2.0.0
+               , hreader                       >= 1.0.0   && < 2.0.0
+               , hset                          >= 2.0.0   && < 3.0.0
                , monad-control                 == 0.3.3.1 || > 1.0.0.3
                , monad-logger
                , mtl
