@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.1.0
+### Changed
+* use hset-2.0 and hreader-1.0
+
 ## 2.0.0
 ### Changed
 * `Entity` typeclass now use `FN` instead of `Text`. This provides an
