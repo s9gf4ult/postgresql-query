@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.2.0
+### Added
+* `MonadHReader` instance for `PgMonadT`
+
 ## 2.1.0
 ### Changed
 * use hset-2.0 and hreader-1.0
