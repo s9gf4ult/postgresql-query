@@ -12,9 +12,13 @@ module Database.PostgreSQL.Query.TH
        , sqlExp
        , sqlExpEmbed
        , sqlExpFile
+
+       , module Database.PostgreSQL.Query.TH.Enum
        ) where
 
 import Prelude
+
+import Database.PostgreSQL.Query.TH.Enum
 
 import Control.Applicative
 import Control.Monad
