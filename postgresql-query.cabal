@@ -29,7 +29,10 @@ library
                  , Database.PostgreSQL.Query.Internal
                  , Database.PostgreSQL.Query.SqlBuilder
                  , Database.PostgreSQL.Query.TH
+                 , Database.PostgreSQL.Query.TH.Common
+                 , Database.PostgreSQL.Query.TH.Entity
                  , Database.PostgreSQL.Query.TH.Enum
+                 , Database.PostgreSQL.Query.TH.Row
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
 
