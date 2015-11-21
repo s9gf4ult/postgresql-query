@@ -1,38 +1,20 @@
 module Database.PostgreSQL.Query.TH
-       ( -- * Deriving instances
-         deriveFromRow
-       , deriveToRow
-       , deriveEntity
-       , deriveEverything
-       , EntityOptions(..)
-         -- * Sql string interpolation
-       , sqlExp
-       , sqlExpEmbed
-       , sqlExpFile
+  ( -- * Deriving instances
+    deriveEverything
 
-       , module Database.PostgreSQL.Query.TH.Enum
-       ) where
+  , module Database.PostgreSQL.Query.TH.Entity
+  , module Database.PostgreSQL.Query.TH.Enum
+  , module Database.PostgreSQL.Query.TH.Row
+  , module Database.PostgreSQL.Query.TH.SqlExp
+  ) where
 
 import Prelude
 
-import Control.Applicative
-import Control.Monad
-import Data.Default
-import Data.FileEmbed ( embedFile )
-import Data.String
-import Database.PostgreSQL.Query.Entity ( Entity(..) )
 import Database.PostgreSQL.Query.TH.Entity
 import Database.PostgreSQL.Query.TH.Enum
 import Database.PostgreSQL.Query.TH.Row
 import Database.PostgreSQL.Query.TH.SqlExp
-import Database.PostgreSQL.Query.Types ( FN(..) )
-import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
-import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
-import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax
-
-
 
 {- | Calls sequently `deriveFromRow` `deriveToRow` `deriveEntity`. E.g. code like this:
 

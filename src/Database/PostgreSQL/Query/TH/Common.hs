@@ -1,19 +1,13 @@
-module Database.PostgreSQL.Query.TH.Common where
+module Database.PostgreSQL.Query.TH.Common
+  ( cName
+  , cArgs
+  , cFieldNames
+  , lookupVNameErr
+  ) where
 
 import Prelude
 
-import Control.Applicative
-import Control.Monad
-import Data.Default
-import Data.FileEmbed ( embedFile )
-import Data.String
-import Database.PostgreSQL.Query.Entity ( Entity(..) )
-import Database.PostgreSQL.Query.Types ( FN(..) )
-import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
-import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
-import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax
 
 -- | Return constructor name
 cName :: (Monad m) => Con -> m Name

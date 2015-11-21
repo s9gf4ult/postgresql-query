@@ -1,22 +1,14 @@
-module Database.PostgreSQL.Query.TH.Row where
+module Database.PostgreSQL.Query.TH.Row
+  ( deriveFromRow
+  , deriveToRow
+  ) where
 
 import Prelude
 
-import Database.PostgreSQL.Query.TH.Enum
-
-import Control.Applicative
-import Control.Monad
-import Data.Default
-import Data.FileEmbed ( embedFile )
-import Data.String
-import Database.PostgreSQL.Query.Entity ( Entity(..) )
 import Database.PostgreSQL.Query.TH.Common
-import Database.PostgreSQL.Query.Types ( FN(..) )
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
-import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax
 
 
 {-| Derive 'FromRow' instance. i.e. you have type like that
