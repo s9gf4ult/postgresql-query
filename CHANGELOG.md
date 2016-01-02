@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.3.0
+### Added
+* `derivePgEnum` TH generator for enum fields
+### Changed
+* TH code splitted to modules
+
 ## 2.2.0
 ### Added
 * `MonadHReader` instance for `PgMonadT`

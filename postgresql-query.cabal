@@ -1,5 +1,5 @@
 name:                postgresql-query
-version:             2.2.0
+version:             2.3.0
 
 synopsis: Sql interpolating quasiquote plus some kind of primitive ORM
           using it
@@ -29,6 +29,10 @@ library
                  , Database.PostgreSQL.Query.Internal
                  , Database.PostgreSQL.Query.SqlBuilder
                  , Database.PostgreSQL.Query.TH
+                 , Database.PostgreSQL.Query.TH.Common
+                 , Database.PostgreSQL.Query.TH.Entity
+                 , Database.PostgreSQL.Query.TH.Enum
+                 , Database.PostgreSQL.Query.TH.Row
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
 
@@ -69,6 +73,7 @@ library
                , haskell-src-meta
                , hreader                       >= 1.0.0   && < 2.0.0
                , hset                          >= 2.0.0   && < 3.0.0
+               , inflections                   >= 0.2     && < 0.3
                , monad-control                 == 0.3.3.1 || > 1.0.0.3
                , monad-logger
                , mtl
@@ -111,3 +116,20 @@ test-suite test
                , tasty-quickcheck
                , tasty-th
                , text
+
+test-suite example
+  type:    exitcode-stdio-1.0
+  default-language:    Haskell2010
+  ghc-options:     -Wall
+  hs-source-dirs:  example
+  main-is: Main.hs
+
+  default-extensions: FlexibleInstances
+                    , OverloadedStrings
+                    , TemplateHaskell
+
+  build-depends: base
+               , inflections
+               , postgresql-query
+               , text
+               , time
