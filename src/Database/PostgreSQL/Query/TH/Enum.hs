@@ -1,39 +1,22 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 -- | Helps to map enum types to postgresql enums.
 module Database.PostgreSQL.Query.TH.Enum
   ( derivePgEnum
-  , GeneratorOptions(..)
+  , InflectorFunc
   ) where
 
 import Prelude
 
-import Data.Default
 import Data.FileEmbed
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
-import GHC.Generics (Generic)
 import Language.Haskell.TH
-import Text.Inflections
 
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 
 -- | Function to transform constructor name into its PG enum conterpart.
--- It should have type 'String -> String'
 type InflectorFunc = String -> String
-
-type Typ = Name
-
--- | Option record to pass to the TH generators.
-data GeneratorOptions
-  = GeneratorOptions
-    { inflectorFunc :: InflectorFunc
-    } deriving (Generic)
-
-instance Default GeneratorOptions where
-  def = GeneratorOptions toUnderscore
 
 {-| derives 'FromField' and 'ToField' instances for a sum-type enum like
 
@@ -41,11 +24,13 @@ instance Default GeneratorOptions where
 data Entity = Red | Green | Blue
 @
 -}
-derivePgEnum :: GeneratorOptions
-           -- ^ mapping function from haskell constructor name to PG enum label
-           -> Typ
-           -> DecsQ
-derivePgEnum (inflectorFunc -> infl) typeName = do
+derivePgEnum
+  :: InflectorFunc
+     -- ^ mapping function from haskell constructor name to PG enum label
+  -> Name
+     -- ^ type to derive instances for
+  -> DecsQ
+derivePgEnum infl typeName = do
   info <- reify typeName
   case info of
     TyConI dec ->
@@ -64,7 +49,7 @@ derivePgEnum (inflectorFunc -> infl) typeName = do
                ++ " in makePgEnumExplicit"
 
 makeToField :: InflectorFunc
-            -> Typ
+            -> Name
             -> [Con]
             -> DecQ
 makeToField i typeName constr = do
@@ -75,7 +60,7 @@ makeToField i typeName constr = do
     [funD 'toField $ fmap pure clauses]
 
 makeFromField :: InflectorFunc
-              -> Typ
+              -> Name
               -> [Con]
               -> Q Dec
 makeFromField i typeName enumCons = do
