@@ -7,29 +7,33 @@ module Database.PostgreSQL.Query.TH.Enum
   , GeneratorOptions(..)
   ) where
 
-import           Prelude
+import Prelude
 
-import           Data.Default
-import           Database.PostgreSQL.Simple.FromField
-import           Database.PostgreSQL.Simple.ToField
-import           Language.Haskell.TH
-import           Text.Inflections
+import Data.Default
+import Data.FileEmbed
+import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.ToField
+import GHC.Generics (Generic)
+import Language.Haskell.TH
+import Text.Inflections
 
-import qualified Data.ByteString.Char8 as C8
+import qualified Data.Text.Encoding as T
+import qualified Data.Text as T
 
 -- | Function to transform constructor name into its PG enum conterpart.
 -- It should have type 'String -> String'
-type InflectorFunc = Name
+type InflectorFunc = String -> String
 
 type Typ = Name
 
 -- | Option record to pass to the TH generators.
 data GeneratorOptions
   = GeneratorOptions
-  { inflectorFunc :: InflectorFunc }
+    { inflectorFunc :: InflectorFunc
+    } deriving (Generic)
 
 instance Default GeneratorOptions where
-  def = GeneratorOptions 'toUnderscore
+  def = GeneratorOptions toUnderscore
 
 {-| derives 'FromField' and 'ToField' instances for a sum-type enum like
 
@@ -122,7 +126,7 @@ withEnumConstructor :: InflectorFunc
                     -> (Name -> ExpQ -> Q a)
                     -- ^ callback function from:
                     --   1. haskell constructor name and
-                    --   2. PG enum option
+                    --   2. PG enum option (ByteString)
                     -> Con
                     -- ^ constructor to decompose
                     -> Q a
@@ -130,7 +134,7 @@ withEnumConstructor i f = \case
   (NormalC _    (_:_))   ->
     error "constructors with arguments are not supported in makeToFieldClause"
   (NormalC nam  []   ) -> f nam inflectedBs
-    where inflected   = appE (varE i) (litE (stringL (nameBase nam)))
-          inflectedBs = [|C8.pack $inflected|]
+    where inflectedT  = T.pack $ i $ nameBase nam
+          inflectedBs = bsToExp $ T.encodeUtf8 inflectedT
   _                      ->
     error "unsupported constructor in makeFromFieldClause"

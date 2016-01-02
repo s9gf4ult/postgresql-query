@@ -10,8 +10,12 @@ import Data.String
 import Database.PostgreSQL.Query.Entity ( Entity(..) )
 import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Query.Types ( FN(..) )
+import Database.PostgreSQL.Simple.FromField
+import Database.PostgreSQL.Simple.ToField
+import GHC.Generics (Generic)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
+import Text.Inflections
 
 -- | Options for deriving `Entity`
 data EntityOptions = EntityOptions
@@ -19,15 +23,15 @@ data EntityOptions = EntityOptions
     , eoColumnNames    :: String -> String -- ^ Record field to column name converter
     , eoDeriveClasses  :: [Name]           -- ^ Typeclasses to derive for Id
     , eoIdType         :: Name             -- ^ Base type for Id
-    }
+    } deriving (Generic)
 
 instance Default EntityOptions where
-    def = EntityOptions
-        { eoTableName = id
-        , eoColumnNames = id
-                          --  FIXME: ++ FromField, ToField
-        , eoDeriveClasses = [''Ord, ''Eq, ''Show]
-        , eoIdType = ''Integer
+  def = EntityOptions
+        { eoTableName     = toUnderscore
+        , eoColumnNames   = toUnderscore
+        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
+                            , ''FromField, ''ToField ]
+        , eoIdType        = ''Integer
         }
 
 {- | Derives instance for 'Entity' using type name and field names. Also
