@@ -12,13 +12,10 @@ module Database.PostgreSQL.Query.SqlBuilder
        , sqlBuilderFromField
        ) where
 
-import Prelude
-
 import Blaze.ByteString.Builder
     ( Builder, toByteString )
 import Control.Applicative
 import Data.ByteString ( ByteString )
-import Data.Monoid
 import Data.String
 import Data.Text ( Text )
 import Data.Typeable ( Typeable )

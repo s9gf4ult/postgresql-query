@@ -14,45 +14,34 @@ module Database.PostgreSQL.Query.Entity.Functions
   , pgSelectCount
   ) where
 
-
 import Control.Applicative
-import Control.Monad
-import Control.Monad.Base
 import Control.Monad.Logger
-import Control.Monad.Trans.Control
 import Data.Int ( Int64 )
 import Data.Maybe ( listToMaybe )
-import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.Entity.Internal
 import Database.PostgreSQL.Query.Functions
 import Database.PostgreSQL.Query.SqlBuilder
-    ( ToSqlBuilder(..), runSqlBuilder )
 import Database.PostgreSQL.Query.TH
     ( sqlExp )
 import Database.PostgreSQL.Query.Types
-    ( FN, MonadPostgresPool(..)
-    , ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 import Database.PostgreSQL.Simple
-    ( ToRow, FromRow, execute_, query_, )
 import Database.PostgreSQL.Simple.FromField
-    ( FromField )
-import Database.PostgreSQL.Simple.Internal
-    ( SqlError )
 import Database.PostgreSQL.Simple.ToField
-    ( ToField )
-import Database.PostgreSQL.Simple.Transaction
-import Database.PostgreSQL.Simple.Types
-    ( Query(..), Only(..), (:.)(..) )
+
+import qualified Data.List as L
+import qualified Data.List.NonEmpty as NL
 
 
 -- | Insert new entity and return it's id
-pgInsertEntity :: forall a m. (MonadPostgresPool m, MonadLogger m, Entity a,
-                         ToRow a, FromField (EntityId a))
-               => a
-               -> m (EntityId a)
+pgInsertEntity
+  :: forall a m
+   . ( MonadPostgres m, MonadLogger m, Entity a
+     , ToRow a, FromField (EntityId a) )
+  => a
+  -> m (EntityId a)
 pgInsertEntity a = do
     pgQuery [sqlExp|^{insertEntity a} RETURNING id|] >>= \case
         ((Only ret):_) -> return ret
@@ -82,37 +71,44 @@ handler2 fvalue = do
 
 -}
 
-pgSelectEntities :: forall m a q. ( Functor m, MonadPostgresPool m, MonadLogger m, Entity a
-                            , FromRow a, ToSqlBuilder q, FromField (EntityId a) )
-                 => (FN -> FN)   -- ^ Entity fields name modifier,
-                                -- e.g. ("tablename"<>). Each field of
-                                -- entity will be processed by this
-                                -- modifier before pasting to the query
-                 -> q           -- ^ part of query just after __SELECT .. FROM table__.
-                 -> m [Ent a]
+pgSelectEntities
+  :: forall m a q
+   . ( Functor m, MonadPostgres m, MonadLogger m, Entity a
+     , FromRow a, ToSqlBuilder q, FromField (EntityId a) )
+  => (FN -> FN)
+   -- ^ Entity fields name modifier, e.g. ("tablename"<>). Each field of entity
+   -- will be processed by this modifier before pasting to the query
+  -> q
+   -- ^ part of query just after __SELECT .. FROM table__.
+  -> m [Ent a]
 pgSelectEntities fpref q = do
     let p = Proxy :: Proxy a
     pgQueryEntities [sqlExp|^{selectEntity (entityFieldsId fpref) p} ^{q}|]
 
 
 -- | Same as 'pgSelectEntities' but do not select id
-pgSelectJustEntities :: forall m a q. ( Functor m, MonadPostgresPool m, MonadLogger m, Entity a
-                                 , FromRow a, ToSqlBuilder q )
-                     => (FN -> FN)
-                     -> q
-                     -> m [a]
+pgSelectJustEntities
+  :: forall m a q
+   . ( Functor m, MonadPostgres m, MonadLogger m, Entity a
+     , FromRow a, ToSqlBuilder q )
+  => (FN -> FN)
+  -> q
+  -> m [a]
 pgSelectJustEntities fpref q = do
     let p = Proxy :: Proxy a
     pgQuery [sqlExp|^{selectEntity (entityFields id fpref) p} ^{q}|]
 
-{- | Select entities by condition formed from 'MarkedRow'. Usefull function when you know
+{- | Select entities by condition formed from 'MarkedRow'. Usefull function when
+you know
 
 -}
 
-pgSelectEntitiesBy :: forall a m b.( Functor m, MonadPostgresPool m, MonadLogger m, Entity a, ToMarkedRow b
-                     , FromRow a, FromField (EntityId a) )
-                   => b
-                   -> m [Ent a]
+pgSelectEntitiesBy
+  :: forall a m b
+   . ( Functor m, MonadPostgres m, MonadLogger m, Entity a, ToMarkedRow b
+     , FromRow a, FromField (EntityId a) )
+  => b
+  -> m [Ent a]
 pgSelectEntitiesBy b =
     let p = Proxy :: Proxy a
     in pgQueryEntities $ selectEntitiesBy ("id":) p b
@@ -126,10 +122,12 @@ pgSelectEntitiesBy b =
 --     pgGetEntity uid
 --         >>= maybe notFound return
 -- @
-pgGetEntity :: forall m a. (ToField (EntityId a), Entity a,
-                      MonadPostgresPool m, MonadLogger m, FromRow a, Functor m)
-            => EntityId a
-            -> m (Maybe a)
+pgGetEntity
+  :: forall m a
+   . ( ToField (EntityId a), Entity a, FromRow a
+     , MonadPostgres m, MonadLogger m, Functor m)
+  => EntityId a
+  -> m (Maybe a)
 pgGetEntity eid = do
     listToMaybe <$> pgSelectJustEntities id [sqlExp|WHERE id = #{eid} LIMIT 1|]
 
@@ -153,10 +151,12 @@ pgQuery [sqlExp|SELECT id, name, phone ... FROM users WHERE name = #{name} AND a
 
 -}
 
-pgGetEntityBy :: forall m a b. ( Entity a, MonadPostgresPool m, MonadLogger m, ToMarkedRow b
-                         , FromField (EntityId a), FromRow a, Functor m )
-              => b               -- ^ uniq constrained list of fields and values
-              -> m (Maybe (Ent a))
+pgGetEntityBy
+  :: forall m a b
+   . ( Entity a, MonadPostgres m, MonadLogger m, ToMarkedRow b
+     , FromField (EntityId a), FromRow a, Functor m )
+  => b               -- ^ uniq constrained list of fields and values
+  -> m (Maybe (Ent a))
 pgGetEntityBy b =
     let p = Proxy :: Proxy a
     in fmap listToMaybe
@@ -166,10 +166,12 @@ pgGetEntityBy b =
 
 -- | Same as 'pgInsertEntity' but insert many entities at one
 -- action. Returns list of id's of inserted entities
-pgInsertManyEntitiesId :: forall a m. ( Entity a, MonadPostgresPool m, MonadLogger m
-                                , ToRow a, FromField (EntityId a))
-                       => [a]
-                       -> m [EntityId a]
+pgInsertManyEntitiesId
+  :: forall a m
+   . ( Entity a, MonadPostgres m, MonadLogger m
+     , ToRow a, FromField (EntityId a))
+  => [a]
+  -> m [EntityId a]
 pgInsertManyEntitiesId [] = return []
 pgInsertManyEntitiesId ents' =
     let ents = NL.fromList ents'
@@ -178,9 +180,11 @@ pgInsertManyEntitiesId ents' =
 
 -- | Insert many entities without returning list of id like
 -- 'pgInsertManyEntitiesId' does
-pgInsertManyEntities :: forall a m. (Entity a, MonadPostgresPool m, MonadLogger m, ToRow a)
-                     => [a]
-                     -> m Int64
+pgInsertManyEntities
+  :: forall a m
+   . (Entity a, MonadPostgres m, MonadLogger m, ToRow a)
+  => [a]
+  -> m Int64
 pgInsertManyEntities [] = return 0
 pgInsertManyEntities ents' =
     let ents = NL.fromList ents'
@@ -198,9 +202,11 @@ rmUser uid = do
 Return 'True' if row was actually deleted.
 -}
 
-pgDeleteEntity :: forall a m. (Entity a, MonadPostgresPool m, MonadLogger m, ToField (EntityId a), Functor m)
-               => EntityId a
-               -> m Bool
+pgDeleteEntity
+  :: forall a m
+   . (Entity a, MonadPostgres m, MonadLogger m, ToField (EntityId a), Functor m)
+  => EntityId a
+  -> m Bool
 pgDeleteEntity eid =
     let p = Proxy :: Proxy a
     in fmap (1 ==)
@@ -227,11 +233,13 @@ Returns 'True' if record was actually updated and 'False' if there was
 not row with such id (or was more than 1, in fact)
 -}
 
-pgUpdateEntity :: forall a b m. (ToMarkedRow b, Entity a, MonadPostgresPool m, MonadLogger m,
-                           ToField (EntityId a), Functor m, Typeable a, Typeable b)
-               => EntityId a
-               -> b
-               -> m Bool
+pgUpdateEntity
+  :: forall a b m
+   . ( ToMarkedRow b, Entity a, MonadPostgres m, MonadLogger m
+     , ToField (EntityId a), Functor m, Typeable a, Typeable b)
+  => EntityId a
+  -> b
+  -> m Bool
 pgUpdateEntity eid b =
     let p = Proxy :: Proxy a
         mr = toMarkedRow b
@@ -255,18 +263,22 @@ activeUsers = do
 
 
 -- | Executes arbitrary query and parses it as entities and their ids
-pgQueryEntities :: ( ToSqlBuilder q, MonadPostgresPool m, MonadLogger m, Entity a
-                  , FromRow a, FromField (EntityId a))
-                => q -> m [Ent a]
+pgQueryEntities
+  :: ( ToSqlBuilder q, MonadPostgres m, MonadLogger m, Entity a
+     , FromRow a, FromField (EntityId a))
+  => q
+  -> m [Ent a]
 pgQueryEntities q =
     map toTuples <$> pgQuery q
   where
     toTuples ((Only eid) :. entity) = (eid, entity)
 
-pgSelectCount :: forall m a q. ( Entity a, MonadPostgresPool m, MonadLogger m, ToSqlBuilder q )
-              => Proxy a
-              -> q
-              -> m Integer
+pgSelectCount
+  :: forall m a q
+   . ( Entity a, MonadPostgres m, MonadLogger m, ToSqlBuilder q )
+  => Proxy a
+  -> q
+  -> m Integer
 pgSelectCount p q = do
     [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{tableName p} ^{q}|]
     return c

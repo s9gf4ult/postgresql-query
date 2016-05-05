@@ -19,21 +19,16 @@ module Database.PostgreSQL.Query.Types
        , ToMarkedRow(..)
        ) where
 
-import           Prelude
-
-import           TypeFun.Data.Peano
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Base ( MonadBase(..) )
-import           Control.Monad.Catch
-    ( MonadThrow, MonadMask, MonadCatch )
+import           Control.Monad.Catch ( MonadThrow, MonadMask, MonadCatch )
 import           Control.Monad.Cont.Class ( MonadCont )
 import           Control.Monad.Error.Class ( MonadError )
 import           Control.Monad.Fix ( MonadFix(..) )
 import           Control.Monad.HReader
 import           Control.Monad.Logger
-import           Control.Monad.Reader
-    ( MonadReader(..), ReaderT(..) )
+import           Control.Monad.Reader ( MonadReader(..), ReaderT(..) )
 import           Control.Monad.State.Class ( MonadState )
 import           Control.Monad.Trans
 import           Control.Monad.Trans.Cont
@@ -44,24 +39,20 @@ import           Control.Monad.Trans.Identity
 import           Control.Monad.Trans.Maybe
 import           Control.Monad.Writer.Class ( MonadWriter )
 import           Data.HSet
-import           Data.Monoid
 import           Data.Pool
 import           Data.String
 import           Data.Text ( Text )
 import           Data.Typeable
 import           Database.PostgreSQL.Query.SqlBuilder
-    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
 import           Database.PostgreSQL.Query.TH.SqlExp
-    ( sqlExp )
 import           Database.PostgreSQL.Simple
 import           Database.PostgreSQL.Simple.FromField
     ( FromField(..), typename, returnError )
 import           Database.PostgreSQL.Simple.ToField
-    ( ToField )
 import           GHC.Generics
-import           GHC.TypeLits
 import           Instances.TH.Lift ()
 import           Language.Haskell.TH.Lift ( deriveLift )
+import           TypeFun.Data.Peano
 
 import qualified Data.List as L
 import qualified Control.Monad.Trans.State.Lazy as STL

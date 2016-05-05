@@ -10,8 +10,6 @@ import Database.PostgreSQL.Query.TH.SqlExp
 import Test.QuickCheck.Assertions
 import Test.QuickCheck.Instances ()
 import Test.QuickCheck.Modifiers
-import Test.QuickCheck.Property
-    ( Result )
 import Test.Tasty
 import Test.Tasty.QuickCheck
 import Test.Tasty.TH

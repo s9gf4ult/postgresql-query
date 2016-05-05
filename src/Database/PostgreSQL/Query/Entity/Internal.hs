@@ -9,8 +9,6 @@ module Database.PostgreSQL.Query.Entity.Internal
   , entityToMR
   ) where
 
-import Prelude
-
 import Data.List.NonEmpty ( NonEmpty )
 import Data.Monoid
 import Data.Proxy ( Proxy(..) )

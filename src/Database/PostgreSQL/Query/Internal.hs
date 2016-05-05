@@ -5,21 +5,10 @@ module Database.PostgreSQL.Query.Internal
        , insertInto
        ) where
 
-
-import Prelude
-
-import Control.Monad.Logger
-import Data.List.NonEmpty ( NonEmpty )
-import Data.Monoid
-import Data.Proxy ( Proxy(..) )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( SqlBuilder, ToSqlBuilder(..), mkValue )
 import Database.PostgreSQL.Query.TH
-    ( sqlExp )
 import Database.PostgreSQL.Query.Types
-import Database.PostgreSQL.Simple.ToRow
 
-import qualified Data.List.NonEmpty as NL
 import qualified Data.List as L
 
 {- $setup

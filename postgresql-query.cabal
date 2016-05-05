@@ -51,7 +51,6 @@ library
                     , GeneralizedNewtypeDeriving
                     , LambdaCase
                     , MultiParamTypeClasses
-                    , NoImplicitPrelude
                     , NoMonomorphismRestriction
                     , OverloadedStrings
                     , QuasiQuotes
