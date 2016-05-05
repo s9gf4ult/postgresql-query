@@ -25,6 +25,9 @@ library
 
   exposed-modules: Database.PostgreSQL.Query
                  , Database.PostgreSQL.Query.Entity
+                 , Database.PostgreSQL.Query.Entity.Class
+                 , Database.PostgreSQL.Query.Entity.Functions
+                 , Database.PostgreSQL.Query.Entity.Internal
                  , Database.PostgreSQL.Query.Functions
                  , Database.PostgreSQL.Query.Internal
                  , Database.PostgreSQL.Query.SqlBuilder
@@ -37,11 +40,13 @@ library
                  , Database.PostgreSQL.Query.Types
 
   default-extensions: CPP
+                    , DataKinds
                     , DeriveDataTypeable
                     , DeriveGeneric
                     , EmptyDataDecls
                     , FlexibleContexts
                     , FlexibleInstances
+                    , FunctionalDependencies
                     , GADTs
                     , GeneralizedNewtypeDeriving
                     , LambdaCase
@@ -88,6 +93,7 @@ library
                , transformers
                , transformers-base
                , transformers-compat           >= 0.3
+               , type-fun                      >= 0.1.0
 
   ghc-options: -Wall
 
