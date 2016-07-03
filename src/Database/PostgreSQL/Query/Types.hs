@@ -14,8 +14,6 @@ module Database.PostgreSQL.Query.Types
        , ToMarkedRow(..)
        ) where
 
-import Prelude
-
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base ( MonadBase(..) )
@@ -44,7 +42,7 @@ import Data.String
 import Data.Text ( Text )
 import Data.Typeable
 import Database.PostgreSQL.Query.SqlBuilder
-    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
+    ( ToSqlBuilder(..), SqlBuilder(..) )
 import Database.PostgreSQL.Query.TH.SqlExp
     ( sqlExp )
 import Database.PostgreSQL.Simple
@@ -52,6 +50,7 @@ import Database.PostgreSQL.Simple.FromField
     ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
     ( ToField )
+import Database.PostgreSQL.Simple.Types
 import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
@@ -131,7 +130,7 @@ instance ToSqlBuilder FN where
     toSqlBuilder (FN tt) =
         mconcat
         $ L.intersperse "."
-        $ map mkIdent tt
+        $ map (toSqlBuilder . Identifier) tt
 
 instance IsString FN where
     fromString s =
