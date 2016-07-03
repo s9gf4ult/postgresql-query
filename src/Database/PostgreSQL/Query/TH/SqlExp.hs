@@ -25,8 +25,6 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text ( Text )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( sqlBuilderFromField,
-      ToSqlBuilder(..) )
 import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
@@ -182,7 +180,7 @@ buildBuilder :: Exp              -- ^ Expression of type 'Query'
              -> Maybe (Q Exp)
 buildBuilder _ (RLit t) = Just $ do
     bs <- bsToExp $ T.encodeUtf8 t
-    [e| toSqlBuilder $(pure bs) |]
+    [e| sqlBuilderFromByteString $(pure bs) |]
 buildBuilder q (RInt t) = Just $ do
     when (T.null $ T.strip t) $ fail "empty interpolation string found"
     let ex = either error id $ parseExp $ T.unpack t
@@ -223,8 +221,7 @@ squashRope = go . catMaybes . map cleanRope
 sqlQExp :: String
         -> Q Exp                 -- ^ Expression of type 'SqlBuilder'
 sqlQExp s = do
-    let rope = squashRope
-               $ parseRope s
+    let rope = squashRope $ parseRope s
     q <- buildQ rope
     exps <- sequence
             $ catMaybes

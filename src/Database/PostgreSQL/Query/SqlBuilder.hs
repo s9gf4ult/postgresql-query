@@ -9,6 +9,7 @@ module Database.PostgreSQL.Query.SqlBuilder
        , mkIdent
        , mkValue
        , sqlBuilderPure
+       , sqlBuilderFromByteString
        , sqlBuilderFromField
        ) where
 
@@ -53,7 +54,8 @@ instance ToSqlBuilder Qp where
 
 
 -- | Builder wich can be effectively concatenated. Requires 'Connection'
--- inside for string quoting implemented in __libpq__
+-- inside for string quoting implemented in __libpq__. Builds two strings: query
+-- string and log string which may differ.
 newtype SqlBuilder =
     SqlBuilder
     { sqlBuild :: Connection -> IO Builder }
@@ -77,24 +79,11 @@ runSqlBuilder con (SqlBuilder bld) =
     (Query . toByteString) <$> bld con
 
 instance IsString SqlBuilder where
-    fromString s =
-        let b = fromString s :: ByteString
-        in toSqlBuilder b
+  fromString s = SqlBuilder $ const $ return $ BB.fromString s
 
 instance ToSqlBuilder SqlBuilder where
-    toSqlBuilder = id
-instance ToSqlBuilder Builder where
-    toSqlBuilder = sqlBuilderPure
-instance ToSqlBuilder ByteString where
-    toSqlBuilder = sqlBuilderPure . BB.fromByteString
-instance ToSqlBuilder BL.ByteString where
-    toSqlBuilder = sqlBuilderPure . BB.fromLazyByteString
-instance ToSqlBuilder String where
-    toSqlBuilder = sqlBuilderPure . BB.fromString
-instance ToSqlBuilder T.Text where
-    toSqlBuilder = sqlBuilderPure . BB.fromText
-instance ToSqlBuilder TL.Text where
-    toSqlBuilder = sqlBuilderPure . BB.fromLazyText
+  toSqlBuilder = id
+
 
 {- | Shorthand function to convert identifier name to builder
 
@@ -118,9 +107,15 @@ Note correct string quoting
 mkValue :: (ToField a) => a -> SqlBuilder
 mkValue a = sqlBuilderFromField "mkValue a" a
 
--- | Lift pure bytestring builder to 'SqlBuilder'
+-- | Lift pure bytestring builder to 'SqlBuilder'. This is unsafe to use
+-- directly in your code.
 sqlBuilderPure :: Builder -> SqlBuilder
 sqlBuilderPure b = SqlBuilder $ const $ pure b
+
+-- | Unsafe function to make SqlBuilder from arbitrary ByteString. Does not
+-- perform any checks
+sqlBuilderFromByteString :: ByteString -> SqlBuilder
+sqlBuilderFromByteString = sqlBuilderPure . BB.fromByteString
 
 sqlBuilderFromField :: (ToField a) => Query -> a -> SqlBuilder
 sqlBuilderFromField q a =
