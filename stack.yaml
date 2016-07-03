@@ -7,4 +7,4 @@ extra-deps:
 - hset-2.2.0
 - th-lift-instances-0.1.6
 - type-fun-0.0.1
-resolver: lts-3.20
+resolver: lts-5.14
