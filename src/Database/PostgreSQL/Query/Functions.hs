@@ -38,18 +38,11 @@ import Data.Monoid
 import Data.Proxy ( Proxy(..) )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Query.Entity
-    ( Entity(..), Ent )
 import Database.PostgreSQL.Query.Internal
-    ( insertEntity, selectEntity, entityFieldsId,
-      entityFields, selectEntitiesBy, insertManyEntities,
-      updateTable, insertInto )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( ToSqlBuilder(..), runSqlBuilder )
 import Database.PostgreSQL.Query.TH
     ( sqlExp )
 import Database.PostgreSQL.Query.Types
-    ( FN, HasPostgres(..), TransactionSafe,
-      ToMarkedRow(..), MarkedRow(..), mrToBuilder )
 import Database.PostgreSQL.Simple
     ( ToRow, FromRow, execute_, query_, )
 import Database.PostgreSQL.Simple.FromField
@@ -144,17 +137,17 @@ so you stay protected from sql injections.
 pgQuery :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
         => q -> m [r]
 pgQuery q = withPGConnection $ \c -> do
-    b <- liftBase $ runSqlBuilder c $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 $ fromQuery b
-    liftBase $ query_ c b
+    (query, log) <- liftBase $ runSqlBuilder c defaultLogMasker $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 log
+    liftBase $ query_ c query
 
 -- | Execute arbitrary query and return count of affected rows
 pgExecute :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
           => q -> m Int64
 pgExecute q = withPGConnection $ \c -> do
-    b <- liftBase $ runSqlBuilder c $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 $ fromQuery b
-    liftBase $ execute_ c b
+    (query, log) <- liftBase $ runSqlBuilder c defaultLogMasker $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 log
+    liftBase $ execute_ c query
 
 -- | Executes arbitrary query and parses it as entities and their ids
 pgQueryEntities :: ( ToSqlBuilder q, HasPostgres m, MonadLogger m, Entity a

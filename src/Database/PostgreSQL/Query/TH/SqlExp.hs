@@ -181,10 +181,10 @@ buildBuilder :: Exp              -- ^ Expression of type 'Query'
 buildBuilder _ (RLit t) = Just $ do
     bs <- bsToExp $ T.encodeUtf8 t
     [e| sqlBuilderFromByteString $(pure bs) |]
-buildBuilder q (RInt t) = Just $ do
+buildBuilder _ (RInt t) = Just $ do
     when (T.null $ T.strip t) $ fail "empty interpolation string found"
     let ex = either error id $ parseExp $ T.unpack t
-    [e| sqlBuilderFromField $(pure q) $(pure ex) |]
+    [e| sqlBuilderFromField FieldDefault $(pure ex) |]
 buildBuilder _ (RPaste t) = Just $ do
     when (T.null $ T.strip t) $ fail "empty paste string found"
     let ex = either error id $ parseExp $ T.unpack t
