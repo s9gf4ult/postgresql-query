@@ -8,9 +8,6 @@ import Database.PostgreSQL.Query.SqlBuilder.Builder
 import Database.PostgreSQL.Query.SqlBuilder.Class
 import Database.PostgreSQL.Query.SqlBuilder.Types
 
-
-
-
 -- -- | Special constructor to perform old-style query interpolation
 -- data Qp = forall row. (ToRow row) => Qp Query row
 
