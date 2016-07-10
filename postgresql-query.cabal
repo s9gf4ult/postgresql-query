@@ -102,9 +102,12 @@ test-suite test
   ghc-options:     -Wall
   hs-source-dirs:  test
   main-is: Main.hs
+  other-modules: BuilderTest
+               , ParserTest
 
   default-extensions: FlexibleInstances
                     , OverloadedStrings
+                    , QuasiQuotes
                     , TemplateHaskell
 
   build-depends: QuickCheck
@@ -112,6 +115,7 @@ test-suite test
                , base                          >=4.6 && < 5
                , derive
                , postgresql-query
+               , postgresql-simple
                , quickcheck-assertions
                , quickcheck-instances
                , tasty
