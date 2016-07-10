@@ -1,7 +1,9 @@
 module Database.PostgreSQL.Query.Functions
        ( -- * Raw query execution
          pgQuery
+       , pgQueryWithMasker
        , pgExecute
+       , pgExecuteWithMasker
        , pgQueryEntities
          -- * Transactions
        , pgWithTransaction
@@ -41,19 +43,11 @@ import Database.PostgreSQL.Query.Entity
 import Database.PostgreSQL.Query.Internal
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH
-    ( sqlExp )
 import Database.PostgreSQL.Query.Types
 import Database.PostgreSQL.Simple
-    ( ToRow, FromRow, execute_, query_, )
 import Database.PostgreSQL.Simple.FromField
-    ( FromField )
-import Database.PostgreSQL.Simple.Internal
-    ( SqlError )
 import Database.PostgreSQL.Simple.ToField
-    ( ToField )
 import Database.PostgreSQL.Simple.Transaction
-import Database.PostgreSQL.Simple.Types
-    ( Query(..), Only(..), (:.)(..) )
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NL
@@ -134,20 +128,38 @@ so you stay protected from sql injections.
 
 -}
 
-pgQuery :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
-        => q -> m [r]
-pgQuery q = withPGConnection $ \c -> do
-    (query, log) <- liftBase $ runSqlBuilder c defaultLogMasker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 log
-    liftBase $ query_ c query
+pgQuery
+  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  => q
+  -> m [r]
+pgQuery = pgQueryWithMasker defaultLogMasker
 
 -- | Execute arbitrary query and return count of affected rows
-pgExecute :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
-          => q -> m Int64
-pgExecute q = withPGConnection $ \c -> do
-    (query, log) <- liftBase $ runSqlBuilder c defaultLogMasker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 log
-    liftBase $ execute_ c query
+pgExecute
+  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  => q
+  -> m Int64
+pgExecute = pgExecuteWithMasker defaultLogMasker
+
+pgQueryWithMasker
+  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  => LogMasker
+  -> q
+  -> m [r]
+pgQueryWithMasker masker q = withPGConnection $ \c -> do
+    (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 logBs
+    liftBase $ query_ c queryBs
+
+pgExecuteWithMasker
+  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  => LogMasker
+  -> q
+  -> m Int64
+pgExecuteWithMasker masker q = withPGConnection $ \c -> do
+    (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
+    logDebugN $ T.decodeUtf8 logBs
+    liftBase $ execute_ c queryBs
 
 -- | Executes arbitrary query and parses it as entities and their ids
 pgQueryEntities :: ( ToSqlBuilder q, HasPostgres m, MonadLogger m, Entity a
