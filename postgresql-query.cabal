@@ -110,6 +110,7 @@ test-suite test
   build-depends: QuickCheck
                , attoparsec
                , base                          >=4.6 && < 5
+               , derive
                , postgresql-query
                , quickcheck-assertions
                , quickcheck-instances

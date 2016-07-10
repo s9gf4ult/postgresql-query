@@ -4,7 +4,6 @@ module Database.PostgreSQL.Query.Entity
        ) where
 
 import Data.Proxy
-import Data.Text ( Text )
 import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Query.Types
 

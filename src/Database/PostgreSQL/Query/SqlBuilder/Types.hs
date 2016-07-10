@@ -15,6 +15,7 @@ import Data.Semigroup
 import Data.String
 import Data.Typeable
 import GHC.Generics (Generic)
+import Language.Haskell.TH.Lift
 
 import qualified Blaze.ByteString.Builder as BB
 import qualified Data.ByteString as BS
@@ -43,6 +44,8 @@ data FieldOption
   | FieldMasked
     -- ^ Mask field in logs with placeholder.
   deriving (Eq, Ord, Show, Typeable, Generic)
+
+deriveLift ''FieldOption
 
 -- | Function modifying query parameter value before pasting it to log. Returns
 -- Nothing if query argument should be passed to log as is.

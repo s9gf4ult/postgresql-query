@@ -4,8 +4,11 @@ module Main where
 
 import Control.Applicative
 import Data.Attoparsec.Text ( parseOnly )
+import Data.Derive.Arbitrary
+import Data.DeriveTH
 import Data.Monoid
 import Data.Text ( Text )
+import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
 import Test.QuickCheck.Assertions
 import Test.QuickCheck.Instances ()
@@ -24,13 +27,11 @@ noSeqSpace ((RSpaces a):(RSpaces b):xs) = noSeqSpace
 noSeqSpace (x:xs) = x:(noSeqSpace xs)
 noSeqSpace [] = []
 
-newtype RopeList
-    = RopeList [Rope]
-    deriving (Ord, Eq, Show)
+newtype RopeList = RopeList [Rope]
+  deriving (Ord, Eq, Show)
 
 instance Arbitrary RopeList where
-    arbitrary =
-        resize 10 $ (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
+  arbitrary = resize 10 $ (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
 
 wordAlpha :: [Text]
 wordAlpha = map T.singleton
@@ -46,11 +47,13 @@ identAlpha = wordAlpha ++ ["\"\"", " "]
 intAlpha :: [Text]
 intAlpha = wordAlpha ++ [" "]
 
+derive makeArbitrary ''FieldOption
+
 instance Arbitrary Rope where
     arbitrary =
         oneof [ RLit <$> stringLit
               , RLit <$> idLit
-              , RInt <$> ropeInt
+              , RInt <$> arbitrary <*> ropeInt
               , RPaste <$> ropePaste
               , RComment <$> comment
               , RComment <$> bcomment
@@ -63,7 +66,6 @@ instance Arbitrary Rope where
         stringLit = do
             x <- selems stringAlpha
             return $ "'" <> mconcat x <> "'"
-
         idLit = do
             x <- selems identAlpha
             return $ "\"" <> mconcat x <> "\""
@@ -83,7 +85,6 @@ instance Arbitrary Rope where
         wordLit = fmap mconcat
                   $ selems1 wordAlpha
 
-
 flattenRope :: [Rope] -> Text
 flattenRope = mconcat . map f
   where
@@ -92,7 +93,8 @@ flattenRope = mconcat . map f
         (Just ('-', _)) -> c <> "\n"
         _ -> c
     f (RSpaces s) = mconcat $ replicate s " "
-    f (RInt t) = "#{" <> quoteBrace t <> "}"
+    f (RInt FieldDefault t) = "#{" <> quoteBrace t <> "}"
+    f (RInt FieldMasked t) = "#?{" <> quoteBrace t <> "}"
     f (RPaste t) = "^{" <> quoteBrace t <> "}"
     quoteBrace = T.replace "}" "\\}"
 
