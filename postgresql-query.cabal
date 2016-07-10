@@ -43,6 +43,7 @@ library
                  , Database.PostgreSQL.Query.Types
 
   default-extensions: CPP
+                    , ConstraintKinds
                     , DataKinds
                     , DeriveDataTypeable
                     , DeriveGeneric
@@ -54,7 +55,6 @@ library
                     , GeneralizedNewtypeDeriving
                     , LambdaCase
                     , MultiParamTypeClasses
-                    , NoMonomorphismRestriction
                     , OverloadedStrings
                     , QuasiQuotes
                     , RecordWildCards

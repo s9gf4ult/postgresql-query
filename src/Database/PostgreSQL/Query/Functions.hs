@@ -4,13 +4,12 @@ module Database.PostgreSQL.Query.Functions
        , pgQueryWithMasker
        , pgExecute
        , pgExecuteWithMasker
-       , pgQueryEntities
          -- * Transactions
-       , pgAtomically
+       , pgWithTransaction
        , pgWithSavepoint
        , pgWithTransactionMode
-       -- , pgWithTransactionModeRetry
-       -- , pgWithTransactionSerializable
+       , pgWithTransactionModeRetry
+       , pgWithTransactionSerializable
          -- * Auxiliary
        , pgRepsertRow
        ) where
@@ -22,16 +21,11 @@ import Control.Monad.Logger
 import Control.Monad.Trans.Control
 import Data.Int ( Int64 )
 import Data.Monoid
-import Data.Proxy ( Proxy(..) )
-import Data.Typeable ( Typeable )
-import Database.PostgreSQL.Query.Entity
 import Database.PostgreSQL.Query.Internal
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH
 import Database.PostgreSQL.Query.Types
 import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.Transaction
 
 import qualified Data.Text.Encoding as T
@@ -88,74 +82,62 @@ pgExecuteWithMasker masker q = withPGConnection $ \c -> do
     logDebugN $ T.decodeUtf8 logBs
     liftBase $ execute_ c queryBs
 
--- | Executes arbitrary query and parses it as entities and their ids
-pgQueryEntities :: ( ToSqlBuilder q, HasPostgres m, MonadLogger m, Entity a
-                  , FromRow a, FromField (EntityId a))
-                => q -> m [Ent a]
-pgQueryEntities q =
-    map toTuples <$> pgQuery q
-  where
-    runTrans con = liftLevel $ control $ \runInIO -> do
-      withTransaction con $ runInIO action
-    runSP con = liftLevel $ control $ \runInIO -> do
-      withSavepoint con $ runInIO action
+-- | Execute all queries inside one transaction. Rollback transaction on exceptions
+pgWithTransaction :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+                  => m a
+                  -> m a
+pgWithTransaction action = withPGConnection $ \con -> do
+    control $ \runInIO -> do
+        withTransaction con $ runInIO action
 
--- | Execute query inside savepoint. Requires monad to be a monad of transaction
--- or savepoint at least
-pgWithSavepoint
-  :: ( MonadTransaction n m, MonadBaseControl IO n
-     , ('S level) ~ TransactionLevel m ) --  NOTE: we must be at least in transaction
-  => n a
-  -> m a
-pgWithSavepoint action = do
-  con <- askConnection
-  liftLevel $ control $ \runInIO -> do
-    withSavepoint con $ runInIO action
+-- | Same as `pgWithTransaction` but executes queries inside savepoint
+pgWithSavepoint :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m) => m a -> m a
+pgWithSavepoint action = withPGConnection $ \con -> do
+    control $ \runInIO -> do
+        withSavepoint con $ runInIO action
 
 -- | Wrapper for 'withTransactionMode': Execute an action inside a SQL
 -- transaction with a given transaction mode.
-pgWithTransactionMode
-  :: ( MonadTransaction n m, 'Z ~ TransactionLevel m
-     , MonadBaseControl IO n )
-  => TransactionMode
-  -> n a
-  -> m a
-pgWithTransactionMode tmode ma = do
-  con <- askConnection
-  liftLevel $ control $ \runInIO -> do
-    withTransactionMode tmode con $ runInIO ma
+pgWithTransactionMode :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+                       => TransactionMode
+                       -> m a
+                       -> m a
+pgWithTransactionMode tmode ma = withPGConnection $ \con -> do
+    control $ \runInIO -> do
+        withTransactionMode tmode con $ runInIO ma
 
--- -- | Wrapper for 'withTransactionModeRetry': Like 'pgWithTransactionMode',
--- -- but also takes a custom callback to determine if a transaction
--- -- should be retried if an SqlError occurs. If the callback returns
--- -- True, then the transaction will be retried. If the callback returns
--- -- False, or an exception other than an SqlError occurs then the
--- -- transaction will be rolled back and the exception rethrown.
--- pgWithTransactionModeRetry :: (MonadPostgres m, MonadBaseControl IO m, TransactionSafe m)
---                            => TransactionMode
---                            -> (SqlError -> Bool)
---                            -> m a
---                            -> m a
--- pgWithTransactionModeRetry tmode epred ma = withPGConnection $ \con -> do
---     control $ \runInIO -> do
---         withTransactionModeRetry tmode epred con $ runInIO ma
+-- | Wrapper for 'withTransactionModeRetry': Like 'pgWithTransactionMode',
+-- but also takes a custom callback to determine if a transaction
+-- should be retried if an SqlError occurs. If the callback returns
+-- True, then the transaction will be retried. If the callback returns
+-- False, or an exception other than an SqlError occurs then the
+-- transaction will be rolled back and the exception rethrown.
+pgWithTransactionModeRetry :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+                           => TransactionMode
+                           -> (SqlError -> Bool)
+                           -> m a
+                           -> m a
+pgWithTransactionModeRetry tmode epred ma = withPGConnection $ \con -> do
+    control $ \runInIO -> do
+        withTransactionModeRetry tmode epred con $ runInIO ma
 
--- -- | Wrapper for 'withTransactionSerializable': Execute an action
--- -- inside of a 'Serializable' transaction. If a serialization failure
--- -- occurs, roll back the transaction and try again. Be warned that
--- -- this may execute the IO action multiple times.
--- --
--- -- A Serializable transaction creates the illusion that your program
--- -- has exclusive access to the database. This means that, even in a
--- -- concurrent setting, you can perform queries in sequence without
--- -- having to worry about what might happen between one statement and
--- -- the next.
--- pgWithTransactionSerializable :: (MonadPostgres m, MonadBaseControl IO m, TransactionSafe m)
---                               => m a
---                               -> m a
--- pgWithTransactionSerializable ma = withPGConnection $ \con -> do
---     control $ \runInIO -> do
---         withTransactionSerializable con $ runInIO ma
+-- | Wrapper for 'withTransactionSerializable': Execute an action
+-- inside of a 'Serializable' transaction. If a serialization failure
+-- occurs, roll back the transaction and try again. Be warned that
+-- this may execute the IO action multiple times.
+--
+-- A Serializable transaction creates the illusion that your program
+-- has exclusive access to the database. This means that, even in a
+-- concurrent setting, you can perform queries in sequence without
+-- having to worry about what might happen between one statement and
+-- the next.
+pgWithTransactionSerializable :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+                              => m a
+                              -> m a
+pgWithTransactionSerializable ma = withPGConnection $ \con -> do
+    control $ \runInIO -> do
+        withTransactionSerializable con $ runInIO ma
+
 
 
 {- | Perform repsert of the same row, first trying "update where" then
