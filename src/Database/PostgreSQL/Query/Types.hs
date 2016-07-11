@@ -7,6 +7,7 @@ module Database.PostgreSQL.Query.Types
        , runPgMonadT
        , launchPG
         -- * Auxiliary types
+       , Qp(..)
        , InetText(..)
        , FN(..)
        , textFN
@@ -43,24 +44,21 @@ import Data.String
 import Data.Text ( Text )
 import Data.Typeable
 import Database.PostgreSQL.Query.SqlBuilder
-    ( ToSqlBuilder(..), SqlBuilder(..) )
 import Database.PostgreSQL.Query.TH.SqlExp
-    ( sqlExp )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
-    ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
-    ( ToField )
 import Database.PostgreSQL.Simple.Types
 import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
-import qualified Data.List as L
+import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
 import qualified Control.Monad.Trans.Writer.Lazy as WL
 import qualified Control.Monad.Trans.Writer.Strict as WS
+import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
@@ -70,6 +68,13 @@ import qualified Data.Text.Encoding as T
 >>> c <- connect defaultConnectInfo
 -}
 
+
+-- | Special constructor to perform old-style query interpolation
+data Qp = forall row. (ToRow row) => Qp Query row
+
+instance ToSqlBuilder Qp where
+  toSqlBuilder (Qp q row) = SqlBuilder $ \con _ ->
+    builderResultPure . BB.fromByteString <$> formatQuery con q row
 
 -- | type to put and get from db 'inet' and 'cidr' typed postgresql
 -- fields. This should be in postgresql-simple in fact.
