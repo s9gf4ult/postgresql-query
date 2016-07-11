@@ -39,7 +39,9 @@ Datatype must have just one constructor with arbitrary count of fields
 
 deriveFromRow :: Name -> Q [Dec]
 deriveFromRow t = do
-    TyConI (DataD _ _ _ [con] _) <- reify t
+    con <- dataConstructors <$> reify t >>= \case
+      [a] -> return a
+      x -> fail $ "expected exactly 1 data constructor, but " ++ show (length x) ++ " got"
     cname <- cName con
     cargs <- cArgs con
     [d|instance FromRow $(return $ ConT t) where
@@ -77,7 +79,9 @@ instance ToRow Entity where
 
 deriveToRow :: Name -> Q [Dec]
 deriveToRow t = do
-    TyConI (DataD _ _ _ [con] _) <- reify t
+    con <- dataConstructors <$> reify t >>= \case
+      [a] -> return a
+      x -> fail $ "expected exactly 1 data constructor, but " ++ show (length x) ++ " got"
     cname <- cName con
     cargs <- cArgs con
     cvars <- sequence

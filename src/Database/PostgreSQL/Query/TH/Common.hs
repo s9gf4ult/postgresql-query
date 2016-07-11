@@ -3,6 +3,7 @@ module Database.PostgreSQL.Query.TH.Common
   , cArgs
   , cFieldNames
   , lookupVNameErr
+  , dataConstructors
   ) where
 
 import Prelude
@@ -32,3 +33,15 @@ lookupVNameErr name =
     lookupValueName name >>=
     maybe (error $ "could not find identifier: " ++ name)
           return
+
+
+dataConstructors :: Info -> [Con]
+dataConstructors = \case
+  TyConI d ->
+#if MIN_VERSION_template_haskell(2,11,0)
+    let DataD _ _ _ _ cs _ = d
+#else
+    let DataD _ _ _ cs _ = d
+#endif
+    in cs
+  x -> error $ "Expected type constructor, " ++ show x ++ " got"

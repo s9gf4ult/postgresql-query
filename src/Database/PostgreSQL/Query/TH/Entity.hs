@@ -17,6 +17,10 @@ import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 import Text.Inflections
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
+
 -- | Options for deriving `Entity`
 data EntityOptions = EntityOptions
     { eoTableName      :: String -> String -- ^ Type name to table name converter
@@ -74,17 +78,26 @@ NOTE: 'toUnderscore' is from package 'inflections' here
 
 deriveEntity :: EntityOptions -> Name -> Q [Dec]
 deriveEntity opts tname = do
-    TyConI (DataD _ _ _ [tcon] _) <- reify tname
+    tcon <- dataConstructors <$> reify tname >>= \case
+      [a] -> return a
+      x -> fail $ "expected exactly 1 data constructor, but " ++ show (length x) ++ " got"
     econt <- [t|Entity $(conT tname)|]
     ConT entityIdName <- [t|EntityId|]
     let tnames = nameBase tname
         idname = tnames ++ "Id"
         unidname = "get" ++ idname
         idtype = ConT (eoIdType opts)
+#if MIN_VERSION_template_haskell(2,11,0)
+        idcon = RecC (mkName idname)
+                [(mkName unidname, Bang NoSourceUnpackedness NoSourceStrictness, idtype)]
+        iddec = NewtypeInstD [] entityIdName [ConT tname] Nothing
+                idcon (map ConT $ eoDeriveClasses opts)
+#else
         idcon = RecC (mkName idname)
                 [(mkName unidname, NotStrict, idtype)]
         iddec = NewtypeInstD [] entityIdName [ConT tname]
                 idcon (eoDeriveClasses opts)
+#endif
         tblName = fromString $ eoTableName opts tnames
         fldNames = map (fromString . eoColumnNames opts . nameBase)
                    $ cFieldNames tcon
@@ -94,7 +107,10 @@ deriveEntity opts tname = do
     fldExp <- mapM lift (fldNames :: [FN])
     let tbldec = FunD ntableName  [Clause [WildP] (NormalB tblExp) []]
         flddec = FunD nfieldNames [Clause [WildP] (NormalB $ ListE fldExp) []]
-        ret = InstanceD [] econt
-              [ iddec, tbldec, flddec ]
+#if MIN_VERSION_template_haskell(2,11,0)
+        ret = InstanceD Nothing [] econt [ iddec, tbldec, flddec ]
+#else
+        ret = InstanceD [] econt [ iddec, tbldec, flddec ]
+#endif
         syndec = TySynD (mkName idname) [] (AppT (ConT entityIdName) (ConT tname))
     return [ret, syndec]
