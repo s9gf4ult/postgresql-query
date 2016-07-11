@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 3.0.0
+### Added
+* Ability to mask some sensitive query arguments in query logs. In case you dont
+  want someone can see your secret data in logs.
+  * Added interpolation syntax `#?{argumentExpression}` for masked parameters
+  * Added `pgQueryWithMasker` and `pgExecuteWithMasker` for custom log masker
+* `MonadPostgres` type synonim
+### Changed
+* Refactoring of `SqlBuilder` and `Entity` modules
+* Some low-level intefaces changed
 ## 2.3.0
 ### Added
 * `derivePgEnum` TH generator for enum fields

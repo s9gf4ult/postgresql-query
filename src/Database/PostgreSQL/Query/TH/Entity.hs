@@ -7,7 +7,7 @@ import Prelude
 
 import Data.Default
 import Data.String
-import Database.PostgreSQL.Query.Entity ( Entity(..) )
+import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Query.Types ( FN(..) )
 import Database.PostgreSQL.Simple.FromField
