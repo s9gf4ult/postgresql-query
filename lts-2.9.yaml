@@ -5,6 +5,7 @@ packages:
 extra-deps:
 - hreader-1.0.2
 - hset-2.2.0
+- inflections-0.2.0.0
 - th-lift-instances-0.1.6
 - type-fun-0.1.0
-resolver: lts-5.14
+resolver: lts-2.9

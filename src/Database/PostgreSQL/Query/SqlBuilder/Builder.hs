@@ -24,6 +24,10 @@ import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.Types
 import GHC.Generics (Generic)
 
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
+
 import qualified Blaze.ByteString.Builder as BB
 import qualified Blaze.ByteString.Builder.Char.Utf8 as BB
 

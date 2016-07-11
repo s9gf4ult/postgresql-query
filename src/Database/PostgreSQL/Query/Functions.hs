@@ -14,7 +14,6 @@ module Database.PostgreSQL.Query.Functions
        , pgRepsertRow
        ) where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Logger

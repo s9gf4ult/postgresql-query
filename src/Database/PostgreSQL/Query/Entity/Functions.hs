@@ -14,7 +14,6 @@ module Database.PostgreSQL.Query.Entity.Functions
   , pgSelectCount
   ) where
 
-import Control.Applicative
 import Control.Monad.Logger
 import Data.Int ( Int64 )
 import Data.Maybe ( listToMaybe )
@@ -30,6 +29,10 @@ import Database.PostgreSQL.Query.Types
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NL

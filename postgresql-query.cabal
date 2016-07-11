@@ -42,7 +42,8 @@ library
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
 
-  default-extensions: CPP
+  default-extensions: AutoDeriveTypeable
+                    , CPP
                     , ConstraintKinds
                     , DataKinds
                     , DeriveDataTypeable
@@ -111,7 +112,8 @@ test-suite test
   other-modules: BuilderTest
                , ParserTest
 
-  default-extensions: FlexibleInstances
+  default-extensions: CPP
+                    , FlexibleInstances
                     , OverloadedStrings
                     , QuasiQuotes
                     , TemplateHaskell
@@ -137,7 +139,8 @@ test-suite example
   hs-source-dirs:  example
   main-is: Main.hs
 
-  default-extensions: FlexibleInstances
+  default-extensions: AutoDeriveTypeable
+                    , FlexibleInstances
                     , OverloadedStrings
                     , TemplateHaskell
 

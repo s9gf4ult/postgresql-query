@@ -4,7 +4,6 @@ module ParserTest
        ( parserTests
        ) where
 
-import Control.Applicative
 import Data.Attoparsec.Text ( parseOnly )
 import Data.Derive.Arbitrary
 import Data.DeriveTH
@@ -19,6 +18,10 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Tasty.TH
+
+#if !MIN_VERSION_base(4,8,0)
+import Control.Applicative
+#endif
 
 import qualified Data.Text as T
 

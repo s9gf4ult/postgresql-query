@@ -38,7 +38,6 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
 import Data.HSet
-import Data.Monoid
 import Data.Pool
 import Data.String
 import Data.Text ( Text )
@@ -52,6 +51,10 @@ import Database.PostgreSQL.Simple.Types
 import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
+
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid
+#endif
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
