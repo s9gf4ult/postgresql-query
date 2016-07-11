@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 3.0.1
+### Changed
+* Buildability with ghc-8.0.1
 ## 3.0.0
 ### Added
 * Ability to mask some sensitive query arguments in query logs. In case you dont
