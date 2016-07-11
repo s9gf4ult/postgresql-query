@@ -6,6 +6,7 @@ module Database.PostgreSQL.Query.TH.Enum
   ) where
 
 import Data.FileEmbed
+import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import Language.Haskell.TH
@@ -34,22 +35,10 @@ derivePgEnum
      -- ^ type to derive instances for
   -> DecsQ
 derivePgEnum infl typeName = do
-  info <- reify typeName
-  case info of
-    TyConI dec ->
-      case dec of
-        DataD _ _ _ constructors _ -> do
-          tfInstance <- makeToField infl typeName constructors
-          ffInstance <- makeFromField infl typeName constructors
-          pure [tfInstance, ffInstance]
-        node  -> error
-               $ "unsupported constructor type "
-              ++ show node
-              ++ "in makePgEnumExplicit"
-    node       -> error
-                $ "unsupported type "
-               ++ show node
-               ++ " in makePgEnumExplicit"
+  constructors <- dataConstructors <$> reify typeName
+  tfInstance <- makeToField infl typeName constructors
+  ffInstance <- makeFromField infl typeName constructors
+  pure [tfInstance, ffInstance]
 
 makeToField :: InflectorFunc
             -> Name
