@@ -47,8 +47,7 @@ data FieldOption
 
 deriveLift ''FieldOption
 
--- | Function modifying query parameter value before pasting it to log. Returns
--- Nothing if query argument should be passed to log as is.
+-- | Function modifying query parameter value before pasting it to log.
 type LogMasker = FieldOption -> Builder -> Builder
 
 -- | Simply replaces masked fields with placeholder.
