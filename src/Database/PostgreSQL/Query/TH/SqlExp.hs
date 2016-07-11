@@ -7,7 +7,6 @@ module Database.PostgreSQL.Query.TH.SqlExp
        , ropeParser
        , parseRope
        , squashRope
-       , buildQ
          -- * Template haskell
        , sqlQExp
        , sqlExpEmbed
@@ -25,9 +24,6 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text ( Text )
 import Database.PostgreSQL.Query.SqlBuilder
-    ( sqlBuilderFromField,
-      ToSqlBuilder(..) )
-import Database.PostgreSQL.Simple.Types ( Query(..) )
 import Language.Haskell.Meta.Parse.Careful
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
@@ -77,11 +73,12 @@ sqlExp = QuasiQuoter
 
 -- | Internal type. Result of parsing sql string
 data Rope
-    = RLit Text            -- ^ Part of raw sql
-    | RComment Text        -- ^ Sql comment
-    | RSpaces Int          -- ^ Sequence of spaces
-    | RInt Text            -- ^ String with haskell expression inside __#{..}__
-    | RPaste Text          -- ^ String with haskell expression inside __^{..}__
+    = RLit Text             -- ^ Part of raw sql
+    | RComment Text         -- ^ Sql comment
+    | RSpaces Int           -- ^ Sequence of spaces
+    | RInt FieldOption Text -- ^ String with haskell expression inside __#{..}__
+                            -- or __#?{..}__
+    | RPaste Text           -- ^ String with haskell expression inside __^{..}__
     deriving (Ord, Eq, Show)
 
 parseRope :: String -> [Rope]
@@ -93,8 +90,9 @@ ropeParser :: Parser [Rope]
 ropeParser = many1 $ choice
              [ quoted
              , iquoted
-             , ropeint
-             , ropepaste
+             , RInt FieldMasked <$> someNested "#?{"
+             , RInt FieldDefault <$> someNested "#{"
+             , RPaste <$> someNested "^{"
              , comment
              , bcomment
              , spaces
@@ -110,23 +108,17 @@ ropeParser = many1 $ choice
 
     unquoteBraces = T.replace "\\}" "}"
 
-    ropeint = do
-        _ <- string "#{"
+    -- Prefix must be string like '#{' or something
+    someNested :: Text -> Parser Text
+    someNested prefix = do
+        _ <- string prefix
         e <- many1 $ choice
              [ string "\\}"
              , T.singleton <$> notChar '}'
              ]
-        _ <- char '}'
-        return $ RInt $ unquoteBraces $ mconcat e
-
-    ropepaste = do
-        _ <- string "^{"
-        e <- many1 $ choice
-             [ string "\\}"
-             , T.singleton <$> notChar '}'
-             ]
-        _ <- char '}'
-        return $ RPaste $ unquoteBraces $ mconcat e
+        eofErf ("block " <> T.unpack prefix <> " not finished") $ do
+          _ <- char '}'
+          return $ unquoteBraces $ mconcat e
 
     comment = do
         b <- string "--"
@@ -177,33 +169,20 @@ ropeParser = many1 $ choice
 
 
 -- | Build builder from rope
-buildBuilder :: Exp              -- ^ Expression of type 'Query'
-             -> Rope
+buildBuilder :: Rope
              -> Maybe (Q Exp)
-buildBuilder _ (RLit t) = Just $ do
+buildBuilder (RLit t) = Just $ do
     bs <- bsToExp $ T.encodeUtf8 t
-    [e| toSqlBuilder $(pure bs) |]
-buildBuilder q (RInt t) = Just $ do
+    [e| sqlBuilderFromByteString $(pure bs) |]
+buildBuilder (RInt fo t) = Just $ do
     when (T.null $ T.strip t) $ fail "empty interpolation string found"
     let ex = either error id $ parseExp $ T.unpack t
-    [e| sqlBuilderFromField $(pure q) $(pure ex) |]
-buildBuilder _ (RPaste t) = Just $ do
+    [e| sqlBuilderFromField $(lift fo) $(pure ex) |]
+buildBuilder (RPaste t) = Just $ do
     when (T.null $ T.strip t) $ fail "empty paste string found"
     let ex = either error id $ parseExp $ T.unpack t
     [e| toSqlBuilder $(pure ex) |]
-buildBuilder _ _ = Nothing
-
--- | Build 'Query' expression from row
-buildQ :: [Rope] -> Q Exp
-buildQ r = do
-    bs <- bsToExp $ mconcat $ map fromRope r
-    [e| Query $(pure bs) |]
-  where
-    fromRope (RLit t) = T.encodeUtf8 t
-    fromRope (RInt t) = "#{" <> (T.encodeUtf8 t) <> "}"
-    fromRope (RPaste p) = "^{" <> (T.encodeUtf8 p) <> "}"
-    fromRope (RComment c) = T.encodeUtf8 c
-    fromRope (RSpaces _) = " "
+buildBuilder _ = Nothing
 
 -- | Removes sequential occurencies of 'RLit' constructors. Also
 -- removes commentaries and squash sequences of spaces to single space
@@ -223,12 +202,10 @@ squashRope = go . catMaybes . map cleanRope
 sqlQExp :: String
         -> Q Exp                 -- ^ Expression of type 'SqlBuilder'
 sqlQExp s = do
-    let rope = squashRope
-               $ parseRope s
-    q <- buildQ rope
+    let rope = squashRope $ parseRope s
     exps <- sequence
             $ catMaybes
-            $ map (buildBuilder q) rope
+            $ map buildBuilder rope
     [e| ( mconcat $(pure $ ListE exps) ) |]
 
 {- | Embed sql template and perform interpolation

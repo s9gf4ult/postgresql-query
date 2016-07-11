@@ -8,8 +8,6 @@ module Database.PostgreSQL.Query.TH
   , module Database.PostgreSQL.Query.TH.SqlExp
   ) where
 
-import Prelude
-
 import Database.PostgreSQL.Query.TH.Entity
 import Database.PostgreSQL.Query.TH.Enum
 import Database.PostgreSQL.Query.TH.Row

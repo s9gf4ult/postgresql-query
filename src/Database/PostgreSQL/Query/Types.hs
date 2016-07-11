@@ -1,11 +1,13 @@
 module Database.PostgreSQL.Query.Types
        ( -- * Query execution
          HasPostgres(..)
+       , MonadPostgres
        , TransactionSafe
        , PgMonadT(..)
        , runPgMonadT
        , launchPG
         -- * Auxiliary types
+       , Qp(..)
        , InetText(..)
        , FN(..)
        , textFN
@@ -13,8 +15,6 @@ module Database.PostgreSQL.Query.Types
        , mrToBuilder
        , ToMarkedRow(..)
        ) where
-
-import Prelude
 
 import Control.Applicative
 import Control.Monad
@@ -38,29 +38,30 @@ import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer.Class ( MonadWriter )
 import Data.HSet
-import Data.Monoid
 import Data.Pool
 import Data.String
 import Data.Text ( Text )
 import Data.Typeable
 import Database.PostgreSQL.Query.SqlBuilder
-    ( mkIdent, ToSqlBuilder(..), SqlBuilder(..) )
 import Database.PostgreSQL.Query.TH.SqlExp
-    ( sqlExp )
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
-    ( FromField(..), typename, returnError )
 import Database.PostgreSQL.Simple.ToField
-    ( ToField )
+import Database.PostgreSQL.Simple.Types
 import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
-import qualified Data.List as L
+#if !MIN_VERSION_base(4,8,0)
+import Data.Monoid
+#endif
+
+import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
 import qualified Control.Monad.Trans.Writer.Lazy as WL
 import qualified Control.Monad.Trans.Writer.Strict as WS
+import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 
@@ -70,6 +71,13 @@ import qualified Data.Text.Encoding as T
 >>> c <- connect defaultConnectInfo
 -}
 
+
+-- | Special constructor to perform old-style query interpolation
+data Qp = forall row. (ToRow row) => Qp Query row
+
+instance ToSqlBuilder Qp where
+  toSqlBuilder (Qp q row) = SqlBuilder $ \con _ ->
+    builderResultPure . BB.fromByteString <$> formatQuery con q row
 
 -- | type to put and get from db 'inet' and 'cidr' typed postgresql
 -- fields. This should be in postgresql-simple in fact.
@@ -131,7 +139,7 @@ instance ToSqlBuilder FN where
     toSqlBuilder (FN tt) =
         mconcat
         $ L.intersperse "."
-        $ map mkIdent tt
+        $ map (toSqlBuilder . Identifier) tt
 
 instance IsString FN where
     fromString s =
@@ -200,6 +208,7 @@ mrToBuilder b (MR l) = mconcat
   where
     tobld (f, val) = [sqlExp| ^{f} = ^{val} |]
 
+type MonadPostgres m = (HasPostgres m, MonadLogger m)
 
 -- | Instances of this typeclass can acquire connection and pass it to
 -- computation. It can be reader of pool of connections or just reader of
