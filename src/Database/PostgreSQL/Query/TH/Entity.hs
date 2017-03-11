@@ -7,6 +7,7 @@ import Prelude
 
 import Data.Default
 import Data.String
+import Data.Text (pack, unpack)
 import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Query.Types ( FN(..) )
@@ -29,6 +30,7 @@ data EntityOptions = EntityOptions
     , eoIdType         :: Name             -- ^ Base type for Id
     } deriving (Generic)
 
+#if !MIN_VERSION_inflections(0,3,0)
 instance Default EntityOptions where
   def = EntityOptions
         { eoTableName     = toUnderscore
@@ -37,6 +39,21 @@ instance Default EntityOptions where
                             , ''FromField, ''ToField ]
         , eoIdType        = ''Integer
         }
+#else
+instance Default EntityOptions where
+  def = EntityOptions
+        { eoTableName     = toUnderscore'
+        , eoColumnNames   = toUnderscore'
+        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
+                            , ''FromField, ''ToField ]
+        , eoIdType        = ''Integer
+        }
+
+toUnderscore' :: String -> String
+toUnderscore' s = case toUnderscore $ pack s of
+  Left er -> error $ "toUnderscore: " ++ show er
+  Right a -> unpack a
+#endif
 
 {- | Derives instance for 'Entity' using type name and field names. Also
 generates type synonim for ID. E.g. code like this:
