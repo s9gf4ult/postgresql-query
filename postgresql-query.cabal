@@ -145,7 +145,6 @@ test-suite example
                     , TemplateHaskell
 
   build-depends: base
-               , inflections
                , postgresql-query
                , text
                , time
