@@ -1,9 +1,9 @@
 module Main where
 
+import Data.Char
 import Data.Text (Text)
 import Data.Time
 import Database.PostgreSQL.Query
-import Text.Inflections
 
 -- | Example enum type to check out how 'derivePgEnum' works
 data Species
@@ -11,7 +11,7 @@ data Species
   | Cat
   | Snake
 
-derivePgEnum toUnderscore ''Species
+derivePgEnum (map toLower) ''Species
 
 -- | Example structure to check out how 'deriveFromRow' works
 data AnimalInfo = AnimalInfo
