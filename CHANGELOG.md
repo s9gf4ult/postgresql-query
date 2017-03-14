@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.1.0
+### Changed
+* Support for inflections-0.3 (fixed buildability). Tested with LTS 8.5
+
 ## 3.0.1
 ### Changed
 * Buildability with ghc-8.0.1
