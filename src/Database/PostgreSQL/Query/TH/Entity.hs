@@ -50,9 +50,9 @@ instance Default EntityOptions where
         }
 
 toUnderscore' :: Text -> Text
-toUnderscore' s = case toUnderscore s of
-  Left er -> error $ "toUnderscore: " ++ show er
-  Right a -> a
+toUnderscore' = either error' id . toUnderscore
+  where
+    error' er = error $ "toUnderscore: " ++ show er
 #endif
 
 {- | Derives instance for 'Entity' using type name and field names. Also
@@ -65,10 +65,13 @@ data Agent = Agent
     , aLongWeirdName :: !Int
     } deriving (Ord, Eq, Show)
 
+unsafeRight :: Show a => Either a b -> b
+unsafeRight = either (error . show) id
+
 $(deriveEntity
   def { eoIdType        = ''Id
-      , eoTableName     = toUnderscore
-      , eoColumnNames   = toUnderscore . drop 1
+      , eoTableName     = textFN . unsafeRight . toUnderscore
+      , eoColumnNames   = textFN . unsafeRight . toUnderscore . drop 1
       , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]

@@ -23,10 +23,13 @@ data Agent = Agent
     , aLongWeirdName :: !Int
     } deriving (Ord, Eq, Show)
 
+unsafeRight :: Show a => Either a b -> b
+unsafeRight = either (error . show) id
+
 $(deriveEverything
   def { eoIdType        = ''Id
-      , eoTableName     = toUnderscore
-      , eoColumnNames   = toUnderscore . drop 1
+      , eoTableName     = textFN . unsafeRight . toUnderscore
+      , eoColumnNames   = textFN . unsafeRight . toUnderscore . drop 1
       , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
