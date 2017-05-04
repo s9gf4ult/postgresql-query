@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.2.0
+### Changed
+* Change interface of `deriveEntity`: now you can state the schema of
+  table of entity. (by @4e6)
+
 ## 3.1.0
 ### Changed
 * Support for inflections-0.3 (fixed buildability). Tested with LTS 8.5
