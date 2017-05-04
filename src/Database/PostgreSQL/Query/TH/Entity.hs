@@ -7,10 +7,10 @@ import Prelude
 
 import Data.Default
 import Data.String
-import Data.Text (pack, unpack)
+import Data.Text (Text, pack, unpack)
 import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.TH.Common
-import Database.PostgreSQL.Query.Types ( FN(..) )
+import Database.PostgreSQL.Query.Types ( FN(..), textFN )
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics (Generic)
@@ -24,35 +24,38 @@ import Control.Applicative
 
 -- | Options for deriving `Entity`
 data EntityOptions = EntityOptions
-    { eoTableName      :: String -> String -- ^ Type name to table name converter
-    , eoColumnNames    :: String -> String -- ^ Record field to column name converter
-    , eoDeriveClasses  :: [Name]           -- ^ Typeclasses to derive for Id
-    , eoIdType         :: Name             -- ^ Base type for Id
+    { eoTableName      :: Text -> FN -- ^ Type name to table name converter
+    , eoColumnNames    :: Text -> FN -- ^ Record field to column name converter
+    , eoDeriveClasses  :: [Name]     -- ^ Typeclasses to derive for Id
+    , eoIdType         :: Name       -- ^ Base type for Id
     } deriving (Generic)
 
 #if !MIN_VERSION_inflections(0,3,0)
 instance Default EntityOptions where
   def = EntityOptions
-        { eoTableName     = toUnderscore
-        , eoColumnNames   = toUnderscore
-        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
-                            , ''FromField, ''ToField ]
-        , eoIdType        = ''Integer
-        }
-#else
-instance Default EntityOptions where
-  def = EntityOptions
-        { eoTableName     = toUnderscore'
-        , eoColumnNames   = toUnderscore'
+        { eoTableName     = textFN . toUnderscore'
+        , eoColumnNames   = textFN . toUnderscore'
         , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
                             , ''FromField, ''ToField ]
         , eoIdType        = ''Integer
         }
 
-toUnderscore' :: String -> String
-toUnderscore' s = case toUnderscore $ pack s of
-  Left er -> error $ "toUnderscore: " ++ show er
-  Right a -> unpack a
+toUnderscore' :: Text -> Text
+toUnderscore' = pack . toUnderscore . unpack
+#else
+instance Default EntityOptions where
+  def = EntityOptions
+        { eoTableName     = textFN . toUnderscore'
+        , eoColumnNames   = textFN . toUnderscore'
+        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
+                            , ''FromField, ''ToField ]
+        , eoIdType        = ''Integer
+        }
+
+toUnderscore' :: Text -> Text
+toUnderscore' = either error' id . toUnderscore
+  where
+    error' er = error $ "toUnderscore: " ++ show er
 #endif
 
 {- | Derives instance for 'Entity' using type name and field names. Also
@@ -67,8 +70,8 @@ data Agent = Agent
 
 $(deriveEntity
   def { eoIdType        = ''Id
-      , eoTableName     = toUnderscore
-      , eoColumnNames   = toUnderscore . drop 1
+      , eoTableName     = textFN . toUnderscore'
+      , eoColumnNames   = textFN . toUnderscore' . drop 1
       , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
@@ -115,8 +118,8 @@ deriveEntity opts tname = do
         iddec = NewtypeInstD [] entityIdName [ConT tname]
                 idcon (eoDeriveClasses opts)
 #endif
-        tblName = fromString $ eoTableName opts tnames
-        fldNames = map (fromString . eoColumnNames opts . nameBase)
+        tblName = eoTableName opts $ pack tnames
+        fldNames = map (eoColumnNames opts . pack . nameBase)
                    $ cFieldNames tcon
     VarE ntableName  <- [e|tableName|]
     VarE nfieldNames <- [e|fieldNames|]

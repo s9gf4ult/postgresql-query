@@ -25,8 +25,8 @@ data Agent = Agent
 
 $(deriveEverything
   def { eoIdType        = ''Id
-      , eoTableName     = toUnderscore
-      , eoColumnNames   = toUnderscore . drop 1
+      , eoTableName     = textFN . toUnderscore'
+      , eoColumnNames   = textFN . toUnderscore' . drop 1
       , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
