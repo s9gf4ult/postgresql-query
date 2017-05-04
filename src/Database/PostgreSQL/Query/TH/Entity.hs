@@ -31,32 +31,23 @@ data EntityOptions = EntityOptions
     } deriving (Generic)
 
 #if !MIN_VERSION_inflections(0,3,0)
-instance Default EntityOptions where
-  def = EntityOptions
-        { eoTableName     = textFN . toUnderscore'
-        , eoColumnNames   = textFN . toUnderscore'
-        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
-                            , ''FromField, ''ToField ]
-        , eoIdType        = ''Integer
-        }
-
 toUnderscore' :: Text -> Text
 toUnderscore' = pack . toUnderscore . unpack
 #else
-instance Default EntityOptions where
-  def = EntityOptions
-        { eoTableName     = textFN . toUnderscore'
-        , eoColumnNames   = textFN . toUnderscore'
-        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
-                            , ''FromField, ''ToField ]
-        , eoIdType        = ''Integer
-        }
-
 toUnderscore' :: Text -> Text
 toUnderscore' = either error' id . toUnderscore
   where
     error' er = error $ "toUnderscore: " ++ show er
 #endif
+
+instance Default EntityOptions where
+  def = EntityOptions
+        { eoTableName     = textFN . toUnderscore'
+        , eoColumnNames   = textFN . toUnderscore'
+        , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
+                            , ''FromField, ''ToField ]
+        , eoIdType        = ''Integer
+        }
 
 {- | Derives instance for 'Entity' using type name and field names. Also
 generates type synonim for ID. E.g. code like this:
