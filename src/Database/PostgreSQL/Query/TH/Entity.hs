@@ -33,12 +33,15 @@ data EntityOptions = EntityOptions
 #if !MIN_VERSION_inflections(0,3,0)
 instance Default EntityOptions where
   def = EntityOptions
-        { eoTableName     = textFN . pack . toUnderscore . unpack
-        , eoColumnNames   = textFN . pack . toUnderscore . unpack
+        { eoTableName     = textFN . toUnderscore'
+        , eoColumnNames   = textFN . toUnderscore'
         , eoDeriveClasses = [ ''Ord, ''Eq, ''Show
                             , ''FromField, ''ToField ]
         , eoIdType        = ''Integer
         }
+
+toUnderscore' :: Text -> Text
+toUnderscore' = pack . toUnderscore . unpack
 #else
 instance Default EntityOptions where
   def = EntityOptions
@@ -65,13 +68,10 @@ data Agent = Agent
     , aLongWeirdName :: !Int
     } deriving (Ord, Eq, Show)
 
-unsafeRight :: Show a => Either a b -> b
-unsafeRight = either (error . show) id
-
 $(deriveEntity
   def { eoIdType        = ''Id
-      , eoTableName     = textFN . unsafeRight . toUnderscore
-      , eoColumnNames   = textFN . unsafeRight . toUnderscore . drop 1
+      , eoTableName     = textFN . toUnderscore'
+      , eoColumnNames   = textFN . toUnderscore' . drop 1
       , eoDeriveClasses =
         [''Show, ''Read, ''Ord, ''Eq
         , ''FromField, ''ToField, ''PathPiece]
