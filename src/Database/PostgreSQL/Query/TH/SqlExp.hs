@@ -24,7 +24,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text ( Text )
 import Database.PostgreSQL.Query.SqlBuilder
-import Language.Haskell.Meta.Parse.Careful
+import Language.Haskell.Meta.Parse
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
