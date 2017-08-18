@@ -24,7 +24,11 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text ( Text )
 import Database.PostgreSQL.Query.SqlBuilder
+#if MIN_VERSION_haskell_src_meta(0,8,0)
 import Language.Haskell.Meta.Parse
+#else
+import Language.Haskell.Meta.Parse.Careful
+#endif
 import Language.Haskell.TH
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
