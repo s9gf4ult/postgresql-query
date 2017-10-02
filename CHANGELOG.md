@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 3.3.0
+### Changed
+* Support for ghc-8.2 (Catherine Galkina)
+* Relax dependency constraints for inflections (Dmitry Bushev)
+
 ## 3.2.0
 ### Changed
 * Change interface of `deriveEntity`: now you can state the schema of
