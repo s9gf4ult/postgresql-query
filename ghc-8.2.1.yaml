@@ -1,0 +1,9 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- deepseq-1.4.3.0
+compiler: ghc-8.2.1
+resolver: lts-9.1
+allow-newer: true

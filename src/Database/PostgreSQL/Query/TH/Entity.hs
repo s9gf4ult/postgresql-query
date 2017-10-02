@@ -6,7 +6,6 @@ module Database.PostgreSQL.Query.TH.Entity
 import Prelude
 
 import Data.Default
-import Data.String
 import Data.Text (Text, pack, unpack)
 import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.TH.Common
@@ -98,7 +97,12 @@ deriveEntity opts tname = do
         idname = tnames ++ "Id"
         unidname = "get" ++ idname
         idtype = ConT (eoIdType opts)
-#if MIN_VERSION_template_haskell(2,11,0)
+#if MIN_VERSION_template_haskell(2,12,0)
+        idcon = RecC (mkName idname)
+                [(mkName unidname, Bang NoSourceUnpackedness NoSourceStrictness, idtype)]
+        iddec = NewtypeInstD [] entityIdName [ConT tname] Nothing
+                idcon [DerivClause Nothing (map ConT $ eoDeriveClasses opts)]
+#elif MIN_VERSION_template_haskell(2,11,0)
         idcon = RecC (mkName idname)
                 [(mkName unidname, Bang NoSourceUnpackedness NoSourceStrictness, idtype)]
         iddec = NewtypeInstD [] entityIdName [ConT tname] Nothing
