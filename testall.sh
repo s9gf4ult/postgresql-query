@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 cp lts-2.9.yaml stack.yaml &&
 stack clean && stack test &&
