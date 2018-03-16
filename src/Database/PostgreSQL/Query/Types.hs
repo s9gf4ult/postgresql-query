@@ -32,7 +32,6 @@ import Control.Monad.State.Class ( MonadState )
 import Control.Monad.Trans
 import Control.Monad.Trans.Cont
 import Control.Monad.Trans.Control
-import Control.Monad.Trans.Either
 import Control.Monad.Trans.Except
 import Control.Monad.Trans.Identity
 import Control.Monad.Trans.Maybe
@@ -217,12 +216,6 @@ type MonadPostgres m = (HasPostgres m, MonadLogger m)
 class (MonadBase IO m) => HasPostgres m where
     withPGConnection :: (Connection -> m a) -> m a
 
-instance (HasPostgres m) => HasPostgres (EitherT e m) where
-    withPGConnection action = do
-        EitherT $ withPGConnection $ \con -> do
-            runEitherT $ action con
-    {-# INLINABLE withPGConnection #-}
-
 instance (HasPostgres m) => HasPostgres (ExceptT e m) where
     withPGConnection action = do
         ExceptT $ withPGConnection $ \con -> do
@@ -288,7 +281,6 @@ instance (MonadBase IO m, MonadBaseControl IO m, HGettable els (Pool Connection)
 -- connection from e.g. connection pool is not.
 class TransactionSafe (m :: * -> *)
 
-instance (TransactionSafe m) => TransactionSafe (EitherT e m)
 instance (TransactionSafe m) => TransactionSafe (ExceptT e m)
 instance (TransactionSafe m) => TransactionSafe (IdentityT m)
 instance (TransactionSafe m) => TransactionSafe (MaybeT m)
