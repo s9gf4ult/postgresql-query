@@ -75,7 +75,6 @@ library
                , bytestring
                , containers
                , data-default
-               , either
                , exceptions
                , file-embed
                , haskell-src-meta
