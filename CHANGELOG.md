@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.4.0
+### Removed
+* Drop `EitherT` support
+
 ## 3.3.0
 ### Changed
 * Support for ghc-8.2 (Catherine Galkina)
