@@ -1,0 +1,8 @@
+flags: {}
+extra-package-dbs: []
+packages:
+- '.'
+extra-deps:
+- git: https://github.com/lpsmith/postgresql-simple.git
+  commit: 14d00c22713aab7d55a81a81b47cc5bb7280398f
+resolver: nightly-2018-04-05
