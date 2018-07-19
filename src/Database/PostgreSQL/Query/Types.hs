@@ -41,6 +41,7 @@ import Data.Pool
 import Data.String
 import Data.Text ( Text )
 import Data.Typeable
+import Data.Semigroup(Semigroup)
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
 import Database.PostgreSQL.Simple
@@ -83,7 +84,7 @@ instance ToSqlBuilder Qp where
 newtype InetText = InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show
-               , Typeable, Monoid, ToField )
+               , Typeable, Semigroup, Monoid, ToField )
 
 
 instance FromField InetText where
@@ -130,7 +131,7 @@ FN ["user","name"]
 -}
 
 newtype FN = FN [Text]
-    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+    deriving (Ord, Eq, Show, Semigroup, Monoid, Typeable, Generic)
 
 $(deriveLift ''FN)
 
@@ -182,7 +183,7 @@ UPDATE tbl SET name = 'name', size = 10, lenght = 20
 
 newtype MarkedRow = MR
     { unMR :: [(FN, SqlBuilder)]
-    } deriving (Monoid, Typeable, Generic)
+    } deriving (Semigroup, Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
     -- | generate list of pairs (field name, field value)
