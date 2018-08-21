@@ -117,10 +117,10 @@ test-suite test
                     , QuasiQuotes
                     , TemplateHaskell
 
-  build-depends: QuickCheck
+  build-depends: base                          >=4.6 && < 5
+               , QuickCheck
                , attoparsec
-               , base                          >=4.6 && < 5
-               , derive
+               , generic-arbitrary
                , postgresql-query
                , postgresql-simple
                , quickcheck-assertions
