@@ -16,11 +16,6 @@ module Database.PostgreSQL.Query.Types
        , ToMarkedRow(..)
        ) where
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Base ( MonadBase(..) )
-import Control.Monad.Catch
-    ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Cont.Class ( MonadCont )
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.Fix ( MonadFix(..) )
@@ -39,24 +34,16 @@ import Control.Monad.Writer.Class ( MonadWriter )
 import Data.HSet
 import Data.Pool
 import Data.String
-import Data.Text ( Text )
 import Data.Typeable
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.Types
-import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
-
-#if MIN_VERSION_base(4,8,0)
-import Data.Semigroup
-#else
-import Data.Monoid
-import Data.Semigroup
-#endif
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL

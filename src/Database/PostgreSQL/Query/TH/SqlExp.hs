@@ -12,26 +12,24 @@ module Database.PostgreSQL.Query.TH.SqlExp
        , sqlExpEmbed
        , sqlExpFile
        ) where
+
 import Prelude hiding (takeWhile)
 
-import Control.Applicative
-import Control.Monad ( when )
 import Data.Attoparsec.Combinator
 import Data.Attoparsec.Text
 import Data.Char ( isSpace )
 import Data.FileEmbed ( bsToExp )
-import Data.Maybe
-import Data.Monoid
-import Data.Text ( Text )
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.SqlBuilder
+import Language.Haskell.TH
+import Language.Haskell.TH.Quote
+import Language.Haskell.TH.Syntax
+
 #if MIN_VERSION_haskell_src_meta(0,8,0)
 import Language.Haskell.Meta.Parse
 #else
 import Language.Haskell.Meta.Parse.Careful
 #endif
-import Language.Haskell.TH
-import Language.Haskell.TH.Quote
-import Language.Haskell.TH.Syntax
 
 import qualified Data.ByteString as B
 import qualified Data.Text as T

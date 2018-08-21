@@ -14,14 +14,11 @@ module Database.PostgreSQL.Query.Entity.Functions
   , pgSelectCount
   ) where
 
-import Control.Monad.Logger
 import Data.Int ( Int64 )
-import Data.Maybe ( listToMaybe )
-import Data.Proxy ( Proxy(..) )
-import Data.Typeable ( Typeable )
 import Database.PostgreSQL.Query.Entity.Class
 import Database.PostgreSQL.Query.Entity.Internal
 import Database.PostgreSQL.Query.Functions
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH
     ( sqlExp )
@@ -29,10 +26,6 @@ import Database.PostgreSQL.Query.Types
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NL

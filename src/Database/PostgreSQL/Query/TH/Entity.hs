@@ -3,23 +3,18 @@ module Database.PostgreSQL.Query.TH.Entity
   , deriveEntity
   ) where
 
-import Prelude
-
 import Data.Default
-import Data.Text (Text, pack, unpack)
 import Database.PostgreSQL.Query.Entity.Class
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Query.Types ( FN(..), textFN )
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
-import GHC.Generics (Generic)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax
 import Text.Inflections
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
+import qualified Data.Text as T
 
 -- | Options for deriving `Entity`
 data EntityOptions = EntityOptions
@@ -31,7 +26,7 @@ data EntityOptions = EntityOptions
 
 #if !MIN_VERSION_inflections(0,3,0)
 toUnderscore' :: Text -> Text
-toUnderscore' = pack . toUnderscore . unpack
+toUnderscore' = T.pack . toUnderscore . T.unpack
 #else
 toUnderscore' :: Text -> Text
 toUnderscore' = either error' id . toUnderscore
@@ -113,8 +108,8 @@ deriveEntity opts tname = do
         iddec = NewtypeInstD [] entityIdName [ConT tname]
                 idcon (eoDeriveClasses opts)
 #endif
-        tblName = eoTableName opts $ pack tnames
-        fldNames = map (eoColumnNames opts . pack . nameBase)
+        tblName = eoTableName opts $ T.pack tnames
+        fldNames = map (eoColumnNames opts . T.pack . nameBase)
                    $ cFieldNames tcon
     VarE ntableName  <- [e|tableName|]
     VarE nfieldNames <- [e|fieldNames|]

@@ -3,8 +3,7 @@ module Database.PostgreSQL.Query.Entity.Class
        , Ent
        ) where
 
-import Data.Proxy
-import Data.Typeable ( Typeable )
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.Types
 
 -- | Auxiliary typeclass for data types which can map to rows of some
