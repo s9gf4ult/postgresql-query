@@ -29,7 +29,6 @@ library
                  , Database.PostgreSQL.Query.Entity.Functions
                  , Database.PostgreSQL.Query.Entity.Internal
                  , Database.PostgreSQL.Query.Functions
-                 , Database.PostgreSQL.Query.Import
                  , Database.PostgreSQL.Query.Internal
                  , Database.PostgreSQL.Query.SqlBuilder
                  , Database.PostgreSQL.Query.SqlBuilder.Builder
@@ -42,6 +41,7 @@ library
                  , Database.PostgreSQL.Query.TH.Row
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
+  other-modules:   Database.PostgreSQL.Query.Import
 
   default-extensions: AutoDeriveTypeable
                     , CPP

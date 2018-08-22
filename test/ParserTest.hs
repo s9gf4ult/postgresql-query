@@ -5,7 +5,8 @@ module ParserTest
        ) where
 
 import Data.Attoparsec.Text ( parseOnly )
-import Database.PostgreSQL.Query.Import
+import Data.Monoid
+import Data.Text (Text)
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
 import Test.QuickCheck.Arbitrary.Generic
@@ -16,10 +17,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Tasty.TH
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 
 import qualified Data.Text as T
 
