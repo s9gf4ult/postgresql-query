@@ -349,6 +349,7 @@ instance (MonadHReader m) => MonadHReader (PgMonadT m) where
   type MHRElements (PgMonadT m) = MHRElements m
   askHSet = PgMonadT askHSet
   {-# INLINEABLE askHSet #-}
+  hlocal f (PgMonadT ma) = PgMonadT $ hlocal f ma
 
 instance (MonadBase IO m) => HasPostgres (PgMonadT m) where
     withPGConnection action = do
