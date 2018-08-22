@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.5.0
+### Changed
+* Copatibility with ghc-8.4
+* Drop dependency from `derive`
+### Fixed
+* Implemented method `hlocal`
+
 ## 3.4.0
 ### Removed
 * Drop `EitherT` support

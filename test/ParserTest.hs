@@ -5,12 +5,11 @@ module ParserTest
        ) where
 
 import Data.Attoparsec.Text ( parseOnly )
-import Data.Derive.Arbitrary
-import Data.DeriveTH
 import Data.Monoid
-import Data.Text ( Text )
+import Data.Text (Text)
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
+import Test.QuickCheck.Arbitrary.Generic
 import Test.QuickCheck.Assertions
 import Test.QuickCheck.Instances ()
 import Test.QuickCheck.Modifiers
@@ -18,10 +17,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Tasty.TH
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 
 import qualified Data.Text as T
 
@@ -37,6 +32,10 @@ newtype RopeList = RopeList [Rope]
 instance Arbitrary RopeList where
   arbitrary = resize 10 $ (RopeList . noSeqSpace . getNonEmpty) <$> arbitrary
 
+instance Arbitrary FieldOption where
+  arbitrary = genericArbitrary
+  shrink = genericShrink
+
 wordAlpha :: [Text]
 wordAlpha = map T.singleton
             $ ['A'..'Z'] ++ ['a'..'z']
@@ -51,7 +50,6 @@ identAlpha = wordAlpha ++ ["\"\"", " "]
 intAlpha :: [Text]
 intAlpha = wordAlpha ++ [" "]
 
-derive makeArbitrary ''FieldOption
 
 instance Arbitrary Rope where
     arbitrary =

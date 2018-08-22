@@ -14,12 +14,8 @@ module Database.PostgreSQL.Query.Functions
        , pgRepsertRow
        ) where
 
-import Control.Monad
-import Control.Monad.Base
-import Control.Monad.Logger
-import Control.Monad.Trans.Control
 import Data.Int ( Int64 )
-import Data.Monoid
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.Internal
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH

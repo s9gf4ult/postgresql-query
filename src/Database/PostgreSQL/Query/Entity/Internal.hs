@@ -9,10 +9,8 @@ module Database.PostgreSQL.Query.Entity.Internal
   , entityToMR
   ) where
 
-import Data.List.NonEmpty ( NonEmpty )
-import Data.Monoid
-import Data.Proxy ( Proxy(..) )
 import Database.PostgreSQL.Query.Entity.Class
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.Internal
 import Database.PostgreSQL.Query.SqlBuilder
     ( SqlBuilder, ToSqlBuilder(..), mkValue )

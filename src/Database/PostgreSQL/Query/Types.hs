@@ -16,11 +16,6 @@ module Database.PostgreSQL.Query.Types
        , ToMarkedRow(..)
        ) where
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Base ( MonadBase(..) )
-import Control.Monad.Catch
-    ( MonadThrow, MonadMask, MonadCatch )
 import Control.Monad.Cont.Class ( MonadCont )
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.Fix ( MonadFix(..) )
@@ -39,21 +34,16 @@ import Control.Monad.Writer.Class ( MonadWriter )
 import Data.HSet
 import Data.Pool
 import Data.String
-import Data.Text ( Text )
 import Data.Typeable
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.Types
-import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
-
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid
-#endif
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
@@ -83,7 +73,7 @@ instance ToSqlBuilder Qp where
 newtype InetText = InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show
-               , Typeable, Monoid, ToField )
+               , Typeable, Semigroup, Monoid, ToField )
 
 
 instance FromField InetText where
@@ -130,7 +120,7 @@ FN ["user","name"]
 -}
 
 newtype FN = FN [Text]
-    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+    deriving (Ord, Eq, Show, Semigroup, Monoid, Typeable, Generic)
 
 $(deriveLift ''FN)
 
@@ -182,7 +172,7 @@ UPDATE tbl SET name = 'name', size = 10, lenght = 20
 
 newtype MarkedRow = MR
     { unMR :: [(FN, SqlBuilder)]
-    } deriving (Monoid, Typeable, Generic)
+    } deriving (Semigroup, Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
     -- | generate list of pairs (field name, field value)
@@ -359,6 +349,7 @@ instance (MonadHReader m) => MonadHReader (PgMonadT m) where
   type MHRElements (PgMonadT m) = MHRElements m
   askHSet = PgMonadT askHSet
   {-# INLINEABLE askHSet #-}
+  hlocal f (PgMonadT ma) = PgMonadT $ hlocal f ma
 
 instance (MonadBase IO m) => HasPostgres (PgMonadT m) where
     withPGConnection action = do

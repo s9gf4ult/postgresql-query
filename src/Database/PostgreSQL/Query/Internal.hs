@@ -9,11 +9,6 @@ import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH
 import Database.PostgreSQL.Query.Types
 
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid
-#endif
-
-
 import qualified Data.List as L
 
 {- $setup

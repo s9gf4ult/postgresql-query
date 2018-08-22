@@ -11,11 +11,6 @@ import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import Language.Haskell.TH
 
-#if !MIN_VERSION_base(4,8,0)
-import Data.Traversable
-import Control.Applicative
-#endif
-
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 
