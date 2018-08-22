@@ -11,10 +11,7 @@ module Database.PostgreSQL.Query.SqlBuilder.Types
 
 
 import Blaze.ByteString.Builder (Builder)
-import Data.Semigroup
-import Data.String
-import Data.Typeable
-import GHC.Generics (Generic)
+import Database.PostgreSQL.Query.Import
 import Language.Haskell.TH.Lift
 
 import qualified Blaze.ByteString.Builder as BB

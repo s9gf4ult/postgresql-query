@@ -3,16 +3,10 @@ module Database.PostgreSQL.Query.TH.Row
   , deriveToRow
   ) where
 
-import Prelude
-
 import Database.PostgreSQL.Query.TH.Common
 import Database.PostgreSQL.Simple.FromRow ( FromRow(..), field )
 import Database.PostgreSQL.Simple.ToRow ( ToRow(..) )
 import Language.Haskell.TH
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 
 {-| Derive 'FromRow' instance. i.e. you have type like that
 

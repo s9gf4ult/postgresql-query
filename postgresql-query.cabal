@@ -1,5 +1,5 @@
 name:                postgresql-query
-version:             3.4.0
+version:             3.5.0
 
 synopsis: Sql interpolating quasiquote plus some kind of primitive ORM
           using it
@@ -41,6 +41,7 @@ library
                  , Database.PostgreSQL.Query.TH.Row
                  , Database.PostgreSQL.Query.TH.SqlExp
                  , Database.PostgreSQL.Query.Types
+  other-modules:   Database.PostgreSQL.Query.Import
 
   default-extensions: AutoDeriveTypeable
                     , CPP
@@ -117,10 +118,10 @@ test-suite test
                     , QuasiQuotes
                     , TemplateHaskell
 
-  build-depends: QuickCheck
+  build-depends: base                          >=4.6 && < 5
+               , QuickCheck
                , attoparsec
-               , base                          >=4.6 && < 5
-               , derive
+               , generic-arbitrary
                , postgresql-query
                , postgresql-simple
                , quickcheck-assertions

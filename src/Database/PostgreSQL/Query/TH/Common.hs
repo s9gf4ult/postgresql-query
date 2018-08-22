@@ -6,8 +6,6 @@ module Database.PostgreSQL.Query.TH.Common
   , dataConstructors
   ) where
 
-import Prelude
-
 import Language.Haskell.TH
 
 -- | Return constructor name

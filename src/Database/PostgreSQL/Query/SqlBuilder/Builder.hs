@@ -14,19 +14,14 @@ module Database.PostgreSQL.Query.SqlBuilder.Builder
 
 import Blaze.ByteString.Builder (Builder)
 import Data.ByteString (ByteString)
-import Data.Semigroup
 import Data.String
 import Data.Typeable
+import Database.PostgreSQL.Query.Import
 import Database.PostgreSQL.Query.SqlBuilder.Types
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Internal
 import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.Types
-import GHC.Generics (Generic)
-
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative
-#endif
 
 import qualified Blaze.ByteString.Builder as BB
 import qualified Blaze.ByteString.Builder.Char.Utf8 as BB
