@@ -51,8 +51,11 @@ import GHC.Generics
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
-#if !MIN_VERSION_base(4,8,0)
+#if MIN_VERSION_base(4,8,0)
+import Data.Semigroup
+#else
 import Data.Monoid
+import Data.Semigroup
 #endif
 
 import qualified Blaze.ByteString.Builder.ByteString as BB
@@ -83,7 +86,7 @@ instance ToSqlBuilder Qp where
 newtype InetText = InetText
     { unInetText :: T.Text
     } deriving ( IsString, Eq, Ord, Read, Show
-               , Typeable, Monoid, ToField )
+               , Typeable, Semigroup, Monoid, ToField )
 
 
 instance FromField InetText where
@@ -130,7 +133,7 @@ FN ["user","name"]
 -}
 
 newtype FN = FN [Text]
-    deriving (Ord, Eq, Show, Monoid, Typeable, Generic)
+    deriving (Ord, Eq, Show, Semigroup, Monoid, Typeable, Generic)
 
 $(deriveLift ''FN)
 
@@ -182,7 +185,7 @@ UPDATE tbl SET name = 'name', size = 10, lenght = 20
 
 newtype MarkedRow = MR
     { unMR :: [(FN, SqlBuilder)]
-    } deriving (Monoid, Typeable, Generic)
+    } deriving (Semigroup, Monoid, Typeable, Generic)
 
 class ToMarkedRow a where
     -- | generate list of pairs (field name, field value)
