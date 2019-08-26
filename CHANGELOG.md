@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.6.0
+### Changed
+* Compatibility with ghc-8.6.5
+
 ## 3.5.0
 ### Changed
 * Copatibility with ghc-8.4
