@@ -276,5 +276,7 @@ pgSelectCount
   -> q
   -> m Integer
 pgSelectCount p q = do
-    [[c]] <- pgQuery [sqlExp|SELECT count(id) FROM ^{tableName p} ^{q}|]
-    return c
+    r <- pgQuery [sqlExp|SELECT count(id) FROM ^{tableName p} ^{q}|]
+    case r of
+      [[c]] -> return c
+      _ -> error "this should not happen"
