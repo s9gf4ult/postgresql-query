@@ -4,3 +4,7 @@ packages:
 - '.'
 extra-deps:
 resolver: lts-11.0
+nix:
+  packages:
+    - postgresql
+    - zlib

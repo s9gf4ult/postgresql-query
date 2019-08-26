@@ -1,4 +1,8 @@
 resolver: lts-6.35
+nix:
+  packages:
+    - postgresql
+    - zlib
 packages:
 - .
 extra-deps:

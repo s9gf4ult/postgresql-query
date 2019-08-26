@@ -1,0 +1,7 @@
+resolver: lts-12.22
+nix:
+  packages:
+    - postgresql
+    - zlib
+packages:
+- .
