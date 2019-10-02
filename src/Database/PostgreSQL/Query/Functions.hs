@@ -22,6 +22,7 @@ import Database.PostgreSQL.Query.TH
 import Database.PostgreSQL.Query.Types
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.Transaction
+import GHC.Stack
 
 import qualified Data.Text.Encoding as T
 
@@ -45,34 +46,34 @@ so you stay protected from sql injections.
 -}
 
 pgQuery
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  :: (MonadPostgres m, ToSqlBuilder q, FromRow r, HasCallStack)
   => q
   -> m [r]
-pgQuery = pgQueryWithMasker defaultLogMasker
+pgQuery = withFrozenCallStack $ pgQueryWithMasker defaultLogMasker
 
 -- | Execute arbitrary query and return count of affected rows
 pgExecute
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  :: (MonadPostgres m, ToSqlBuilder q, HasCallStack)
   => q
   -> m Int64
-pgExecute = pgExecuteWithMasker defaultLogMasker
+pgExecute = withFrozenCallStack $ pgExecuteWithMasker defaultLogMasker
 
 pgQueryWithMasker
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  :: (MonadPostgres m, ToSqlBuilder q, FromRow r, HasCallStack)
   => LogMasker
   -> q
   -> m [r]
-pgQueryWithMasker masker q = withPGConnection $ \c -> do
+pgQueryWithMasker masker q = withFrozenCallStack $ withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
     logDebug $ T.decodeUtf8 logBs
     liftBase $ query_ c queryBs
 
 pgExecuteWithMasker
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  :: (MonadPostgres m, ToSqlBuilder q, HasCallStack)
   => LogMasker
   -> q
   -> m Int64
-pgExecuteWithMasker masker q = withPGConnection $ \c -> do
+pgExecuteWithMasker masker q = withFrozenCallStack $ withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
     logDebug $ T.decodeUtf8 logBs
     liftBase $ execute_ c queryBs
