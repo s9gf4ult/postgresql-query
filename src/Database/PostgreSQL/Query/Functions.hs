@@ -64,7 +64,7 @@ pgQueryWithMasker
   -> m [r]
 pgQueryWithMasker masker q = withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 logBs
+    logDebug $ T.decodeUtf8 logBs
     liftBase $ query_ c queryBs
 
 pgExecuteWithMasker
@@ -74,7 +74,7 @@ pgExecuteWithMasker
   -> m Int64
 pgExecuteWithMasker masker q = withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 logBs
+    logDebug $ T.decodeUtf8 logBs
     liftBase $ execute_ c queryBs
 
 -- | Execute all queries inside one transaction. Rollback transaction on exceptions

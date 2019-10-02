@@ -9,7 +9,7 @@ import Control.Applicative as X
 import Control.Monad as X
 import Control.Monad.Base as X
 import Control.Monad.Catch as X
-import Control.Monad.Logger as X
+import Control.Monad.Logger.CallStack as X
 import Control.Monad.Trans.Control as X
 import Data.List.NonEmpty as X (NonEmpty)
 import Data.Maybe as X
