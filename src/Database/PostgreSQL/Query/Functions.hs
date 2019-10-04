@@ -45,58 +45,63 @@ so you stay protected from sql injections.
 -}
 
 pgQuery
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  :: (MonadPostgres m, ToSqlBuilder q, FromRow r, HasCallStack)
   => q
   -> m [r]
-pgQuery = pgQueryWithMasker defaultLogMasker
+pgQuery = withFrozenCallStack $ pgQueryWithMasker defaultLogMasker
 
 -- | Execute arbitrary query and return count of affected rows
 pgExecute
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  :: (MonadPostgres m, ToSqlBuilder q, HasCallStack)
   => q
   -> m Int64
-pgExecute = pgExecuteWithMasker defaultLogMasker
+pgExecute = withFrozenCallStack $ pgExecuteWithMasker defaultLogMasker
 
 pgQueryWithMasker
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q, FromRow r)
+  :: (MonadPostgres m, ToSqlBuilder q, FromRow r, HasCallStack)
   => LogMasker
   -> q
   -> m [r]
-pgQueryWithMasker masker q = withPGConnection $ \c -> do
+pgQueryWithMasker masker q = withFrozenCallStack $ withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 logBs
+    logDebug $ T.decodeUtf8 logBs
     liftBase $ query_ c queryBs
 
 pgExecuteWithMasker
-  :: (HasPostgres m, MonadLogger m, ToSqlBuilder q)
+  :: (MonadPostgres m, ToSqlBuilder q, HasCallStack)
   => LogMasker
   -> q
   -> m Int64
-pgExecuteWithMasker masker q = withPGConnection $ \c -> do
+pgExecuteWithMasker masker q = withFrozenCallStack $ withPGConnection $ \c -> do
     (queryBs, logBs) <- liftBase $ runSqlBuilder c masker $ toSqlBuilder q
-    logDebugN $ T.decodeUtf8 logBs
+    logDebug $ T.decodeUtf8 logBs
     liftBase $ execute_ c queryBs
 
 -- | Execute all queries inside one transaction. Rollback transaction on exceptions
-pgWithTransaction :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
-                  => m a
-                  -> m a
+pgWithTransaction
+  :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m, HasCallStack)
+  => (HasCallStack => m a)
+  -> m a
 pgWithTransaction action = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withTransaction con $ runInIO action
 
 -- | Same as `pgWithTransaction` but executes queries inside savepoint
-pgWithSavepoint :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m) => m a -> m a
+pgWithSavepoint
+  :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m, HasCallStack)
+  => (HasCallStack => m a)
+  -> m a
 pgWithSavepoint action = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withSavepoint con $ runInIO action
 
 -- | Wrapper for 'withTransactionMode': Execute an action inside a SQL
 -- transaction with a given transaction mode.
-pgWithTransactionMode :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
-                       => TransactionMode
-                       -> m a
-                       -> m a
+pgWithTransactionMode
+  :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m, HasCallStack)
+  => TransactionMode
+  -> (HasCallStack => m a)
+  -> m a
 pgWithTransactionMode tmode ma = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withTransactionMode tmode con $ runInIO ma
@@ -107,11 +112,12 @@ pgWithTransactionMode tmode ma = withPGConnection $ \con -> do
 -- True, then the transaction will be retried. If the callback returns
 -- False, or an exception other than an SqlError occurs then the
 -- transaction will be rolled back and the exception rethrown.
-pgWithTransactionModeRetry :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
-                           => TransactionMode
-                           -> (SqlError -> Bool)
-                           -> m a
-                           -> m a
+pgWithTransactionModeRetry
+  :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m, HasCallStack)
+  => TransactionMode
+  -> (SqlError -> Bool)
+  -> (HasCallStack => m a)
+  -> m a
 pgWithTransactionModeRetry tmode epred ma = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withTransactionModeRetry tmode epred con $ runInIO ma
@@ -126,9 +132,10 @@ pgWithTransactionModeRetry tmode epred ma = withPGConnection $ \con -> do
 -- concurrent setting, you can perform queries in sequence without
 -- having to worry about what might happen between one statement and
 -- the next.
-pgWithTransactionSerializable :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
-                              => m a
-                              -> m a
+pgWithTransactionSerializable
+  :: (HasPostgres m, MonadBaseControl IO m, TransactionSafe m)
+  => (HasCallStack => m a)
+  -> m a
 pgWithTransactionSerializable ma = withPGConnection $ \con -> do
     control $ \runInIO -> do
         withTransactionSerializable con $ runInIO ma
@@ -160,7 +167,7 @@ will be performed
 
 pgRepsertRow
   :: ( MonadPostgres m, MonadLogger m
-     , ToMarkedRow wrow, ToMarkedRow urow)
+     , ToMarkedRow wrow, ToMarkedRow urow, HasCallStack)
   => FN                         -- ^ Table name
   -> wrow                       -- ^ where condition
   -> urow                       -- ^ update row

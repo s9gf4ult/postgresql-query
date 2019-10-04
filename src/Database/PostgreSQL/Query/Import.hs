@@ -9,7 +9,7 @@ import Control.Applicative as X
 import Control.Monad as X
 import Control.Monad.Base as X
 import Control.Monad.Catch as X
-import Control.Monad.Logger as X
+import Control.Monad.Logger.CallStack as X
 import Control.Monad.Trans.Control as X
 import Data.List.NonEmpty as X (NonEmpty)
 import Data.Maybe as X
@@ -18,6 +18,7 @@ import Data.String as X
 import Data.Text as X (Text)
 import Data.Typeable as X
 import GHC.Generics as X (Generic)
+import GHC.Stack as X
 
 #if MIN_VERSION_base(4,8,0)
 import Data.Semigroup as X

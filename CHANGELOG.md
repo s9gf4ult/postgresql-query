@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.7.0
+### Changed
+* Use 'HasCallStack' and logging with stack (ilyakooo0)
+
 ## 3.6.0
 ### Changed
 * Compatibility with ghc-8.6.5
