@@ -59,6 +59,7 @@ library
                     , MultiParamTypeClasses
                     , OverloadedStrings
                     , QuasiQuotes
+                    , RankNTypes
                     , RecordWildCards
                     , ScopedTypeVariables
                     , StandaloneDeriving

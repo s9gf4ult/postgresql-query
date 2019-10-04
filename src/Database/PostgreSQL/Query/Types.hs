@@ -367,7 +367,11 @@ instance (MonadBase IO m) => HasPostgres (PgMonadT m) where
 instance TransactionSafe (PgMonadT m)
 
 
-runPgMonadT :: Connection -> PgMonadT m a -> m a
+runPgMonadT
+  :: HasCallStack
+  => Connection
+  -> (HasCallStack => PgMonadT m a)
+  -> m a
 runPgMonadT con (PgMonadT action) = runReaderT action con
 
 {- | If your monad have instance of 'HasPostgres' you maybe dont need this
@@ -377,8 +381,9 @@ connection you need this function
 
 -}
 
-launchPG :: (HasPostgres m)
-         => PgMonadT m a
-         -> m a
+launchPG
+  :: (HasPostgres m, HasCallStack)
+  => (HasCallStack => PgMonadT m a)
+  -> m a
 launchPG act = withPGConnection $ \con -> do
     runPgMonadT con act

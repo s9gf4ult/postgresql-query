@@ -18,6 +18,7 @@ import Data.String as X
 import Data.Text as X (Text)
 import Data.Typeable as X
 import GHC.Generics as X (Generic)
+import GHC.Stack as X
 
 #if MIN_VERSION_base(4,8,0)
 import Data.Semigroup as X
