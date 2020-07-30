@@ -27,6 +27,7 @@ import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 
+import qualified Control.Monad.Fail as F
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as NL
 
@@ -35,7 +36,7 @@ import qualified Data.List.NonEmpty as NL
 pgInsertEntity
   :: forall a m
    . ( MonadPostgres m, MonadLogger m, Entity a
-     , ToRow a, FromField (EntityId a) )
+     , ToRow a, FromField (EntityId a), F.MonadFail m )
   => a
   -> m (EntityId a)
 pgInsertEntity a = do
