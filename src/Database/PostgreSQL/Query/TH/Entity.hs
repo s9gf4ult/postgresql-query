@@ -87,12 +87,18 @@ deriveEntity opts tname = do
       [a] -> return a
       x -> fail $ "expected exactly 1 data constructor, but " ++ show (length x) ++ " got"
     econt <- [t|Entity $(conT tname)|]
+    eidcont <- [t|EntityId $(conT tname)|]
     ConT entityIdName <- [t|EntityId|]
     let tnames = nameBase tname
         idname = tnames ++ "Id"
         unidname = "get" ++ idname
         idtype = ConT (eoIdType opts)
-#if MIN_VERSION_template_haskell(2,12,0)
+#if MIN_VERSION_template_haskell(2,15,0)
+        idcon = RecC (mkName idname)
+                [(mkName unidname, Bang NoSourceUnpackedness NoSourceStrictness, idtype)]
+        iddec = NewtypeInstD [] Nothing eidcont Nothing
+                idcon [DerivClause Nothing (map ConT $ eoDeriveClasses opts)]
+#elif MIN_VERSION_template_haskell(2,12,0)
         idcon = RecC (mkName idname)
                 [(mkName unidname, Bang NoSourceUnpackedness NoSourceStrictness, idtype)]
         iddec = NewtypeInstD [] entityIdName [ConT tname] Nothing
