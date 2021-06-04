@@ -97,7 +97,6 @@ library
                , transformers
                , transformers-base
                , transformers-compat           >= 0.3
-               , type-fun                      >= 0.1.0
 
   ghc-options: -Wall
 
