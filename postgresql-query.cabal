@@ -1,5 +1,5 @@
 name:                postgresql-query
-version:             3.8.1
+version:             3.8.2
 
 synopsis: Sql interpolating quasiquote plus some kind of primitive ORM
           using it
@@ -97,7 +97,6 @@ library
                , transformers
                , transformers-base
                , transformers-compat           >= 0.3
-               , type-fun                      >= 0.1.0
 
   ghc-options: -Wall
 

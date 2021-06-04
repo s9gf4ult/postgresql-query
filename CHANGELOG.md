@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.8.2
+### Changed
+* Remove unused dependency `type-fun`
+
 ## 3.8.1
 ### Changed
 * Compatibility with ghc-8.8.3
