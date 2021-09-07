@@ -52,6 +52,10 @@ import Data.Monoid
 import Data.Semigroup
 #endif
 
+#if !MIN_VERSION_base(4,13,0)
+import           Control.Monad.Fail
+#endif
+
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
@@ -299,7 +303,7 @@ newtype PgMonadT m a = PgMonadT
                , MonadState s, MonadError e, MonadTrans
                , Alternative, MonadFix, MonadPlus, MonadIO
                , MonadCont, MonadThrow, MonadCatch, MonadMask
-               , MonadBase b, MonadLogger )
+               , MonadBase b, MonadLogger, MonadFail )
 
 #if MIN_VERSION_monad_control(1,0,0)
 instance (MonadBaseControl b m) => MonadBaseControl b (PgMonadT m) where
