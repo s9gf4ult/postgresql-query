@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.9.0
+### Changed
+* Add instance for `MonadFail` (odrdo)
+
 ## 3.8.2
 ### Changed
 * Remove unused dependency `type-fun`
