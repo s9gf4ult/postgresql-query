@@ -12,7 +12,7 @@ pipelines:
           services:
             - postgres
           script: # Modify the commands below to build your repository.
-            - PGHOST=localhost stack --install-ghc test --fast
+            - PGHOST=localhost PGUSER=test_user stack --install-ghc test --fast
       # - step:
       #     services:
       #       - postgres
@@ -30,3 +30,4 @@ definitions:
       image: postgres
       environment:
         POSTGRES_HOST_AUTH_METHOD: trust
+        POSTGRES_USER: 'test_user'
