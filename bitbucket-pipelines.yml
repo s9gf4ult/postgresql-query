@@ -9,7 +9,7 @@ pipelines:
   default:
     - step:
         services:
-          - postgresql
+          - postgres
         script: # Modify the commands below to build your repository.
           - stack --install-ghc test --fast
 
