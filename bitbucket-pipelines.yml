@@ -8,5 +8,12 @@ image: haskell:latest
 pipelines:
   default:
     - step:
+        services:
+          - postgresql
         script: # Modify the commands below to build your repository.
           - stack --install-ghc test --fast
+
+definitions:
+  services:
+    postgres:
+      image: postgres
