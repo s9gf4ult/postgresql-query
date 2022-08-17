@@ -17,12 +17,12 @@ pipelines:
           services:
             - postgres
           script: # Modify the commands below to build your repository.
-            - stack --stack-yaml ghc-8.6.5 --install-ghc test --fast
+            - stack --stack-yaml ghc-8.6.5.yaml --install-ghc test --fast
       - step:
           services:
             - postgres
           script: # Modify the commands below to build your repository.
-            - stack --stack-yaml ghc-8.8.3 --install-ghc test --fast
+            - stack --stack-yaml ghc-8.8.3.yaml --install-ghc test --fast
 
 definitions:
   services:
