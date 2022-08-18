@@ -1,7 +1,0 @@
-resolver: lts-15.6
-nix:
-  packages:
-    - postgresql
-    - zlib
-packages:
-  - .
