@@ -30,5 +30,6 @@ jobs:
       - uses: haskell/actions/setup@v2
         with:
           enable-stack: true
+          ghc-version: ${{ matrix.ghc-version }}
           stack-version: 'latest'
       - run: PGHOST=localhost PGUSER=test_user stack --stack-yaml ghc-${{ matrix.ghc-version }}.yaml --install-ghc test --fast --haddock
