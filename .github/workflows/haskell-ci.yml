@@ -2,7 +2,7 @@ name: Haskell-CI
 on: [push]
 jobs:
   linux:
-    name: ${{ matrix.stack-yaml }}
+    name: GHC-${{ matrix.ghc-version }}
     runs-on: ubuntu-latest
     services:
       # Label used to access the service container
@@ -24,11 +24,11 @@ jobs:
           - 5432:5432
     strategy:
       matrix:
-        stack-yaml: [stack.yaml, ghc-8.10.7.yaml, ghc-8.6.5.yaml]
+        ghc-version: [9.2.4, 9.0.2, 8.10.7, 8.6.5, 7.10.3]
     steps:
       - uses: actions/checkout@v3
       - uses: haskell/actions/setup@v2
         with:
           enable-stack: true
           stack-version: 'latest'
-      - run: PGHOST=localhost PGUSER=test_user stack --stack-yaml ${{ matrix.stack-yaml }} --install-ghc test --fast --haddock
+      - run: PGHOST=localhost PGUSER=test_user stack --stack-yaml ghc-${{ matrix.ghc-version }}.yaml --install-ghc test --fast --haddock
