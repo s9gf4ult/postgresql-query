@@ -82,7 +82,11 @@ deriveToRow t = do
              $ replicate cargs
              $ newName "a"
     [d|instance ToRow $(return $ ConT t) where
+#if MIN_VERSION_template_haskell(2,18,0)
+           toRow $(return $ ConP cname [] $ map VarP cvars) = $(toFields cvars)|]
+#else
            toRow $(return $ ConP cname $ map VarP cvars) = $(toFields cvars)|]
+#endif
   where
     toFields v = do
         tof <- lookupVNameErr "toField"
