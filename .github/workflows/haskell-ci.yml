@@ -24,7 +24,7 @@ jobs:
           - 5432:5432
     strategy:
       matrix:
-        ghc-version: [9.2.4, 9.0.2, 8.10.7, 8.6.5, 7.10.3]
+        ghc-version: [9.2.4, 9.0.2, 8.6.5]
     steps:
       - uses: actions/checkout@v3
       - uses: haskell/actions/setup@v2
