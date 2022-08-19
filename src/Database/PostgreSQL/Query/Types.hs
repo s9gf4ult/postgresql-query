@@ -70,6 +70,7 @@ import qualified Data.Text.Encoding as T
 >>> import Database.PostgreSQL.Query.SqlBuilder
 >>> import Data.Text ( Text )
 >>> c <- connect defaultConnectInfo
+>>> run b = fmap fst $ runSqlBuilder c defaultLogMasker b
 -}
 
 
@@ -118,7 +119,7 @@ FN ["hello"]
 FN ["user","name"]
 
 >>> let n = "u.name" :: FN
->>> runSqlBuilder c $ toSqlBuilder n
+>>> run $ toSqlBuilder n
 "\"u\".\"name\""
 
 >>> ("user" <> "name") :: FN
@@ -126,7 +127,7 @@ FN ["user","name"]
 
 >>> let a = "name" :: FN
 >>> let b = "email" :: FN
->>> runSqlBuilder c [sqlExp|^{"u" <> a} = 'name', ^{"e" <> b} = 'email'|]
+>>> run [sqlExp|^{"u" <> a} = 'name', ^{"e" <> b} = 'email'|]
 "\"u\".\"name\" = 'name', \"e\".\"email\" = 'email'"
 
 -}
@@ -195,7 +196,7 @@ instance ToMarkedRow MarkedRow where
 
 {- | Turns marked row to query intercalating it with other builder
 
->>> runSqlBuilder c $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
+>>> run $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
 " \"name\" = 'petr' AND \"email\" = 'foo@bar.com' "
 
 -}
