@@ -17,6 +17,7 @@ module Database.PostgreSQL.Query.Types
        ) where
 
 import Control.Monad.Cont.Class ( MonadCont )
+import Control.Monad.Catch
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.Fix ( MonadFix(..) )
 import Control.Monad.HReader
@@ -275,7 +276,7 @@ instance (MonadBase IO m, MonadBaseControl IO m, HGettable els (Pool Connection)
          => HasPostgres (HReaderT els m) where
     withPGConnection action = do
         pool <- hask
-        withResource pool action
+        liftBaseOp (withResource pool) action
 
 -- | Empty typeclass signing monad in which transaction is
 -- safe. i.e. `PgMonadT` have this instance, but some other monad giving

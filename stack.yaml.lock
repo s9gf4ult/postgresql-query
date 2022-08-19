@@ -5,29 +5,36 @@
 
 packages:
 - completed:
-    hackage: hreader-1.1.0@sha256:8b6d5d671a1e574a72aea4d3d1b5aae994f598a4902be553168cd403d5f7e34f,1978
     pantry-tree:
-      size: 404
       sha256: d5cf10580a0d663b7c4182e592f2c1c4baa3e6291d0e25948ec120cf03f854af
+      size: 404
+    hackage: hreader-1.1.0@sha256:8b6d5d671a1e574a72aea4d3d1b5aae994f598a4902be553168cd403d5f7e34f,1978
   original:
     hackage: hreader-1.1.0
 - completed:
-    hackage: hset-2.2.0@sha256:f4b860555c9824510d949e846dcbdcff637066a26d0318a138ce70cb1a338481,2381
     pantry-tree:
-      size: 753
       sha256: bfb7baa6477411384a2e548ff3ee6744d6527212697059563553e73a86186a71
+      size: 753
+    hackage: hset-2.2.0@sha256:f4b860555c9824510d949e846dcbdcff637066a26d0318a138ce70cb1a338481,2381
   original:
     hackage: hset-2.2.0
 - completed:
-    hackage: type-fun-0.1.3@sha256:336b851757792f201078043210aec180021ac052f0955c71fa330a5fe11b0604,1765
     pantry-tree:
-      size: 583
       sha256: b977d42525f0b4223959918d18e7905085283e937493c395077b608cd19b42c1
+      size: 583
+    hackage: type-fun-0.1.3@sha256:336b851757792f201078043210aec180021ac052f0955c71fa330a5fe11b0604,1765
   original:
     hackage: type-fun-0.1.3
+- completed:
+    pantry-tree:
+      sha256: e2fc51ec2b5a126caab04688b40ec64fd6f7e3d9251e947a87c5ce3a6bc447bc
+      size: 406
+    hackage: resource-pool-0.3.1.0@sha256:dbaadfcc3c1be5391336e2016b28bb2d0c534f245ba9f5af5ed1d5125afc8c1a,1280
+  original:
+    hackage: resource-pool-0.3.1.0
 snapshots:
 - completed:
-    size: 585817
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/4.yaml
-    sha256: ea3a318eafa9e9cc56bfbe46099fd0d54d32641ab7bbe1d182ed8f5de39f804c
-  original: lts-18.4
+    sha256: a95a93bcb7132bf5f8ad3356998e223947852f57d4da63e0e145870ea90d9d18
+    size: 619170
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/19/19.yaml
+  original: lts-19.19
