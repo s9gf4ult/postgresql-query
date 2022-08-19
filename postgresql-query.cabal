@@ -132,41 +132,41 @@ test-suite test
                , tasty-th
                , text
 
--- test-suite doctests
---     type: exitcode-stdio-1.0
---     hs-source-dirs: doctests
---     main-is: Main.hs
---     ghc-options: -Wall -threaded
---     build-depends: base
---                  , doctest
---                  , postgresql-query
+test-suite doctests
+    type: exitcode-stdio-1.0
+    hs-source-dirs: doctests
+    main-is: Main.hs
+    ghc-options: -Wall -threaded
+    build-depends: base
+                 , doctest
+                 , postgresql-query
 
---   default-extensions: AutoDeriveTypeable
---                     , CPP
---                     , ConstraintKinds
---                     , DataKinds
---                     , DeriveDataTypeable
---                     , DeriveGeneric
---                     , EmptyDataDecls
---                     , FlexibleContexts
---                     , FlexibleInstances
---                     , FunctionalDependencies
---                     , GADTs
---                     , GeneralizedNewtypeDeriving
---                     , LambdaCase
---                     , MultiParamTypeClasses
---                     , OverloadedStrings
---                     , QuasiQuotes
---                     , RankNTypes
---                     , RecordWildCards
---                     , ScopedTypeVariables
---                     , StandaloneDeriving
---                     , TemplateHaskell
---                     , TupleSections
---                     , TypeFamilies
---                     , TypeOperators
---                     , UndecidableInstances
---                     , ViewPatterns
+  default-extensions: AutoDeriveTypeable
+                    , CPP
+                    , ConstraintKinds
+                    , DataKinds
+                    , DeriveDataTypeable
+                    , DeriveGeneric
+                    , EmptyDataDecls
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , FunctionalDependencies
+                    , GADTs
+                    , GeneralizedNewtypeDeriving
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , OverloadedStrings
+                    , QuasiQuotes
+                    , RankNTypes
+                    , RecordWildCards
+                    , ScopedTypeVariables
+                    , StandaloneDeriving
+                    , TemplateHaskell
+                    , TupleSections
+                    , TypeFamilies
+                    , TypeOperators
+                    , UndecidableInstances
+                    , ViewPatterns
 
 test-suite example
   type:    exitcode-stdio-1.0

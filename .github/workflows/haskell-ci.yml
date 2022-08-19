@@ -12,7 +12,6 @@ jobs:
         # Provide the password for postgres
         env:
           POSTGRES_HOST_AUTH_METHOD: trust
-          POSTGRES_USER: 'test_user'
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -38,4 +37,4 @@ jobs:
             ~/.stack
             ./.stack-work
           key: ${{ matrix.ghc-version }}
-      - run: PGHOST=localhost PGUSER=test_user stack --stack-yaml ghc-${{ matrix.ghc-version }}.yaml --install-ghc test --fast --haddock
+      - run: PGHOST=localhost PGUSER=postgres stack --stack-yaml ghc-${{ matrix.ghc-version }}.yaml --install-ghc test --fast --haddock
