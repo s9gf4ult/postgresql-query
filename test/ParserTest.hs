@@ -5,7 +5,6 @@ module ParserTest
        ) where
 
 import Data.Attoparsec.Text ( parseOnly )
-import Data.Monoid
 import Data.Text (Text)
 import Database.PostgreSQL.Query.SqlBuilder
 import Database.PostgreSQL.Query.TH.SqlExp
