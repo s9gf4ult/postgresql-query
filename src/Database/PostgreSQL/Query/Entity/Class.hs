@@ -11,7 +11,11 @@ import Database.PostgreSQL.Query.Types
 -- generate queries.
 class Entity a where
     -- | Id type for this entity
+#if MIN_VERSION_base(4, 9, 0)
+    data EntityId a :: Type
+#else
     data EntityId a :: *
+#endif
     -- | Table name of this entity
     tableName :: Proxy a -> FN
     -- | Field names without 'id' and 'created'. The order of field names must match

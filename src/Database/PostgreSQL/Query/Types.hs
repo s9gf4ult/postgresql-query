@@ -46,17 +46,6 @@ import Database.PostgreSQL.Simple.Types
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
-#if MIN_VERSION_base(4,8,0)
-import Data.Semigroup
-#else
-import Data.Monoid
-import Data.Semigroup
-#endif
-
-#if !MIN_VERSION_base(4,13,0)
-import           Control.Monad.Fail
-#endif
-
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
@@ -282,7 +271,13 @@ instance (MonadBase IO m, MonadBaseControl IO m, HGettable els (Pool Connection)
 -- | Empty typeclass signing monad in which transaction is
 -- safe. i.e. `PgMonadT` have this instance, but some other monad giving
 -- connection from e.g. connection pool is not.
+
+#if MIN_VERSION_base(4, 9, 0)
+class TransactionSafe (m :: Type -> Type)
+#else
 class TransactionSafe (m :: * -> *)
+#endif
+
 
 instance (TransactionSafe m) => TransactionSafe (ExceptT e m)
 instance (TransactionSafe m) => TransactionSafe (IdentityT m)
