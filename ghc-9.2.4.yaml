@@ -1,0 +1,9 @@
+resolver: nightly-2022-08-18
+nix:
+  packages:
+    - postgresql
+    - zlib
+packages:
+  - .
+extra-deps:
+  - resource-pool-0.3.1.0

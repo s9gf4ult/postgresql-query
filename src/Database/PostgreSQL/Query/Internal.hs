@@ -17,12 +17,13 @@ import qualified Data.List as L
 >>> import Database.PostgreSQL.Query.SqlBuilder
 >>> import Data.Text ( Text )
 >>> con <- connect defaultConnectInfo
+>>> run b = fmap fst $ runSqlBuilder con defaultLogMasker b
 -}
 
 
 {-| Generates comma separated list of field names
 
->>> runSqlBuilder con $ buildFields ["u" <> "name", "u" <> "phone", "e" <> "email"]
+>>> run $ buildFields ["u" <> "name", "u" <> "phone", "e" <> "email"]
 "\"u\".\"name\", \"u\".\"phone\", \"e\".\"email\""
 -}
 buildFields :: [FN] -> SqlBuilder
@@ -33,7 +34,7 @@ buildFields flds = mconcat
 {- | generates __UPDATE__ query
 
 >>> let name = "%vip%"
->>> runSqlBuilder con $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
+>>> run $ updateTable "ships" (MR [("size", mkValue 15)]) [sqlExp|WHERE size > 15 AND name NOT LIKE #{name}|]
 "UPDATE \"ships\" SET  \"size\" = 15  WHERE size > 15 AND name NOT LIKE '%vip%'"
 
 -}
@@ -52,7 +53,7 @@ updateTable tname flds q =
 
 {- | Generate INSERT INTO query for entity
 
->>> runSqlBuilder con $ insertInto "foo" $ MR [("name", mkValue "vovka"), ("hobby", mkValue "president")]
+>>> run $ insertInto "foo" $ MR [("name", mkValue "vovka"), ("hobby", mkValue "president")]
 "INSERT INTO \"foo\" (\"name\", \"hobby\") VALUES ('vovka', 'president')"
 
 -}

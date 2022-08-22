@@ -37,10 +37,13 @@ import qualified Data.Text.Encoding as T
 
 {- $setup
 >>> import Database.PostgreSQL.Simple
+>>> import Database.PostgreSQL.Simple.Types
 >>> import Database.PostgreSQL.Query.SqlBuilder
 >>> import Data.Text ( Text )
 >>> import qualified Data.List as L
+>>> import Database.PostgreSQL.Query.TH.SqlExp
 >>> c <- connect defaultConnectInfo
+>>> run b = fmap fst $ runSqlBuilder c defaultLogMasker b
 -}
 
 {- | Maybe the main feature of all library. Quasiquoter which builds
@@ -50,7 +53,7 @@ handles string literals and quoted identifiers. Here is examples of usage
 
 >>> let name = "name"
 >>> let val = "some 'value'"
->>> runSqlBuilder c [sqlExp|SELECT * FROM tbl WHERE ^{mkIdent name} = #{val}|]
+>>> run [sqlExp|SELECT * FROM tbl WHERE ^{Identifier name} = #{val}|]
 "SELECT * FROM tbl WHERE \"name\" = 'some ''value'''"
 
 And more comples example:
@@ -60,7 +63,7 @@ And more comples example:
 >>> let active = Nothing :: Maybe Bool
 >>> let condlist = catMaybes [ fmap (\a -> [sqlExp|name = #{a}|]) name, fmap (\a -> [sqlExp|size = #{a}|]) size, fmap (\a -> [sqlExp|active = #{a}|]) active]
 >>> let cond = if L.null condlist then mempty else [sqlExp| WHERE ^{mconcat $ L.intersperse " AND " $ condlist} |]
->>> runSqlBuilder c [sqlExp|SELECT *   FROM tbl ^{cond} -- line comment|]
+>>> run [sqlExp|SELECT *   FROM tbl ^{cond} -- line comment|]
 "SELECT * FROM tbl  WHERE name = 'name' AND size = 10  "
 
 -}

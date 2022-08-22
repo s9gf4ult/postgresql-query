@@ -26,3 +26,7 @@ import Data.Semigroup as X
 import Data.Monoid as X
 import Data.Semigroup as X
 #endif
+
+#if MIN_VERSION_base(4, 9, 0)
+import Data.Kind as X
+#endif

@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.10.0
+### Changed
+* Project moved to Gtihub
+* CI at last
+* Add support for GHC-9.2.4
+* Add support for resource-pool >= 0.3.0
+
 ## 3.9.0
 ### Changed
 * Add instance for `MonadFail` (odrdo)

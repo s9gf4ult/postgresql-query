@@ -17,6 +17,7 @@ module Database.PostgreSQL.Query.Types
        ) where
 
 import Control.Monad.Cont.Class ( MonadCont )
+import Control.Monad.Catch
 import Control.Monad.Error.Class ( MonadError )
 import Control.Monad.Fix ( MonadFix(..) )
 import Control.Monad.HReader
@@ -45,13 +46,6 @@ import Database.PostgreSQL.Simple.Types
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
-#if MIN_VERSION_base(4,8,0)
-import Data.Semigroup
-#else
-import Data.Monoid
-import Data.Semigroup
-#endif
-
 #if !MIN_VERSION_base(4,13,0)
 import           Control.Monad.Fail
 #endif
@@ -69,6 +63,7 @@ import qualified Data.Text.Encoding as T
 >>> import Database.PostgreSQL.Query.SqlBuilder
 >>> import Data.Text ( Text )
 >>> c <- connect defaultConnectInfo
+>>> run b = fmap fst $ runSqlBuilder c defaultLogMasker b
 -}
 
 
@@ -117,7 +112,7 @@ FN ["hello"]
 FN ["user","name"]
 
 >>> let n = "u.name" :: FN
->>> runSqlBuilder c $ toSqlBuilder n
+>>> run $ toSqlBuilder n
 "\"u\".\"name\""
 
 >>> ("user" <> "name") :: FN
@@ -125,7 +120,7 @@ FN ["user","name"]
 
 >>> let a = "name" :: FN
 >>> let b = "email" :: FN
->>> runSqlBuilder c [sqlExp|^{"u" <> a} = 'name', ^{"e" <> b} = 'email'|]
+>>> run [sqlExp|^{"u" <> a} = 'name', ^{"e" <> b} = 'email'|]
 "\"u\".\"name\" = 'name', \"e\".\"email\" = 'email'"
 
 -}
@@ -194,7 +189,7 @@ instance ToMarkedRow MarkedRow where
 
 {- | Turns marked row to query intercalating it with other builder
 
->>> runSqlBuilder c $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
+>>> run $ mrToBuilder "AND" $ MR [("name", mkValue "petr"), ("email", mkValue "foo@bar.com")]
 " \"name\" = 'petr' AND \"email\" = 'foo@bar.com' "
 
 -}
@@ -275,12 +270,18 @@ instance (MonadBase IO m, MonadBaseControl IO m, HGettable els (Pool Connection)
          => HasPostgres (HReaderT els m) where
     withPGConnection action = do
         pool <- hask
-        withResource pool action
+        liftBaseOp (withResource pool) action
 
 -- | Empty typeclass signing monad in which transaction is
 -- safe. i.e. `PgMonadT` have this instance, but some other monad giving
 -- connection from e.g. connection pool is not.
+
+#if MIN_VERSION_base(4, 9, 0)
+class TransactionSafe (m :: Type -> Type)
+#else
 class TransactionSafe (m :: * -> *)
+#endif
+
 
 instance (TransactionSafe m) => TransactionSafe (ExceptT e m)
 instance (TransactionSafe m) => TransactionSafe (IdentityT m)

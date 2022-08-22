@@ -1,7 +1,9 @@
-resolver: lts-15.6
+resolver: lts-19.19
 nix:
   packages:
     - postgresql
     - zlib
 packages:
   - .
+extra-deps:
+- resource-pool-0.3.1.0

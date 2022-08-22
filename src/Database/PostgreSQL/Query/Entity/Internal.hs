@@ -25,24 +25,32 @@ import Database.PostgreSQL.Simple.ToRow
 import qualified Data.List.NonEmpty as NL
 import qualified Data.List as L
 
+{- $setup
+>>> import Database.PostgreSQL.Simple
+>>> import Database.PostgreSQL.Simple.ToField
+>>> import Database.PostgreSQL.Query.SqlBuilder
+>>> con <- connect defaultConnectInfo
+>>> run b = fmap fst $ runSqlBuilder con defaultLogMasker b
+-}
+
 
 {- | Build entity fields
 
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
->>> runSqlBuilder con $ entityFields id id (Proxy :: Proxy Foo)
+>>> run $ entityFields id id (Proxy :: Proxy Foo)
 "\"name\", \"size\""
 
->>> runSqlBuilder con $ entityFields ("id":) id (Proxy :: Proxy Foo)
+>>> run $ entityFields ("id":) id (Proxy :: Proxy Foo)
 "\"id\", \"name\", \"size\""
 
->>> runSqlBuilder con $ entityFields (\l -> ("id":l) ++ ["created"]) id (Proxy :: Proxy Foo)
+>>> run $ entityFields (\l -> ("id":l) ++ ["created"]) id (Proxy :: Proxy Foo)
 "\"id\", \"name\", \"size\", \"created\""
 
->>> runSqlBuilder con $ entityFields id ("f"<>) (Proxy :: Proxy Foo)
+>>> run $ entityFields id ("f"<>) (Proxy :: Proxy Foo)
 "\"f\".\"name\", \"f\".\"size\""
 
->>> runSqlBuilder con $ entityFields ("f.id":) ("f"<>) (Proxy :: Proxy Foo)
+>>> run $ entityFields ("f.id":) ("f"<>) (Proxy :: Proxy Foo)
 "\"f\".\"id\", \"f\".\"name\", \"f\".\"size\""
 
 -}
@@ -65,10 +73,10 @@ field. This is shorthand function for often usage.
 
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
->>> runSqlBuilder con $ entityFieldsId id (Proxy :: Proxy Foo)
+>>> run $ entityFieldsId id (Proxy :: Proxy Foo)
 "\"id\", \"name\", \"size\""
 
->>> runSqlBuilder con $ entityFieldsId ("f"<>) (Proxy :: Proxy Foo)
+>>> run $ entityFieldsId ("f"<>) (Proxy :: Proxy Foo)
 "\"f\".\"id\", \"f\".\"name\", \"f\".\"size\""
 
 -}
@@ -85,13 +93,13 @@ entityFieldsId fpref p =
 
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
->>> runSqlBuilder con $ selectEntity (entityFieldsId id) (Proxy :: Proxy Foo)
+>>> run $ selectEntity (entityFieldsId id) (Proxy :: Proxy Foo)
 "SELECT \"id\", \"name\", \"size\" FROM \"foo\""
 
->>> runSqlBuilder con $ selectEntity (entityFieldsId ("f"<>)) (Proxy :: Proxy Foo)
+>>> run $ selectEntity (entityFieldsId ("f"<>)) (Proxy :: Proxy Foo)
 "SELECT \"f\".\"id\", \"f\".\"name\", \"f\".\"size\" FROM \"foo\""
 
->>> runSqlBuilder con $ selectEntity (entityFields id id) (Proxy :: Proxy Foo)
+>>> run $ selectEntity (entityFields id id) (Proxy :: Proxy Foo)
 "SELECT \"name\", \"size\" FROM \"foo\""
 
 -}
@@ -108,13 +116,13 @@ selectEntity bld p =
 
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
->>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR []
+>>> run $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR []
 "SELECT \"name\", \"size\" FROM \"foo\""
 
->>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname")]
+>>> run $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname")]
 "SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' "
 
->>> runSqlBuilder con $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname"), ("size", mkValue 10)]
+>>> run $ selectEntitiesBy id (Proxy :: Proxy Foo) $ MR [("name", mkValue "fooname"), ("size", mkValue 10)]
 "SELECT \"name\", \"size\" FROM \"foo\" WHERE  \"name\" = 'fooname' AND \"size\" = 10 "
 
 -}
@@ -140,7 +148,7 @@ and same stuff
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
 >>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
->>> runSqlBuilder con $ mrToBuilder ", " $ entityToMR $ Foo "Enterprise" 610
+>>> run $ mrToBuilder ", " $ entityToMR $ Foo "Enterprise" 610
 " \"name\" = 'Enterprise' ,  \"size\" = 610 "
 
 -}
@@ -158,7 +166,7 @@ entityToMR a =
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
 >>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
->>> runSqlBuilder con $ insertEntity $ Foo "Enterprise" 910
+>>> run $ insertEntity $ Foo "Enterprise" 910
 "INSERT INTO \"foo\" (\"name\", \"size\") VALUES ('Enterprise', 910)"
 
 -}
@@ -171,10 +179,12 @@ insertEntity a =
 
 {- | Same as 'insertEntity' but generates query to insert many queries at same time
 
+>>> import Database.PostgreSQL.Simple.ToField
+>>> import Database.PostgreSQL.Query.SqlBuilder.Builder
 >>> data Foo = Foo { fName :: Text, fSize :: Int }
 >>> instance Entity Foo where {newtype EntityId Foo = FooId Int ; fieldNames _ = ["name", "size"] ; tableName _ = "foo"}
 >>> instance ToRow Foo where { toRow Foo{..} = [toField fName, toField fSize] }
->>> runSqlBuilder con $ insertManyEntities $ NL.fromList [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
+>>> run $ insertManyEntities $ NL.fromList [Foo "meter" 1, Foo "table" 2, Foo "earth" 151930000000]
 "INSERT INTO \"foo\" (\"name\",\"size\") VALUES ('meter',1),('table',2),('earth',151930000000)"
 
 -}
