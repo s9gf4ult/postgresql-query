@@ -1,5 +1,7 @@
 # What ?
 
+[![Haskell-CI](https://github.com/s9gf4ult/postgresql-query/actions/workflows/haskell-ci.yml/badge.svg)](https://github.com/s9gf4ult/postgresql-query/actions/workflows/haskell-ci.yml)
+
 `postgresql-query` is a library for more simple query generation for
 PostgreSQL database. It is not an ORM (but contains some part of). It
 contains interpolating quasiquote for simple query generation.
