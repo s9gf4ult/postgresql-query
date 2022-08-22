@@ -27,7 +27,7 @@ import Data.Monoid as X
 import Data.Semigroup as X
 #endif
 
-#if !MIN_VERSION_base(4,13,0)
+#if !MIN_VERSION_base(4,9,0)
 import Control.Monad.Fail as X
 #endif
 
