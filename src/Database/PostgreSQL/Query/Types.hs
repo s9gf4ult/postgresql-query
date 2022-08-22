@@ -46,6 +46,10 @@ import Database.PostgreSQL.Simple.Types
 import Instances.TH.Lift ()
 import Language.Haskell.TH.Lift ( deriveLift )
 
+#if !MIN_VERSION_base(4,13,0)
+import           Control.Monad.Fail
+#endif
+
 import qualified Blaze.ByteString.Builder.ByteString as BB
 import qualified Control.Monad.Trans.State.Lazy as STL
 import qualified Control.Monad.Trans.State.Strict as STS
